@@ -19,7 +19,6 @@ namespace PDVMottainai
         public MainWindow()
         {
             InitializeComponent();
-
         }
     }
 }
