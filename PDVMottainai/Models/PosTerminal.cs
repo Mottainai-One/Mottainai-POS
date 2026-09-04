@@ -4,7 +4,7 @@ using System.Text;
 
 namespace PDVMottainai.Models
 {
-    internal class PosTerminal
+    public class PosTerminal
     {
         public int TerminalId { get; set; }
         public int StoreId { get; set; }
