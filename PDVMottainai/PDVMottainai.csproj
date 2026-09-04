@@ -8,4 +8,34 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="IMG\eyeClose.png" />
+    <None Remove="IMG\eyeOpen.png" />
+    <None Remove="IMG\mottainai.png" />
+    <None Remove="IMG\supermercado.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="IMG\eyeClose.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="IMG\eyeOpen.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="IMG\otter.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="IMG\mottainai.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="IMG\supermercado.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Comands\" />
+    <Folder Include="ViewModels\" />
+  </ItemGroup>
+
 </Project>
