@@ -38,4 +38,8 @@
     <Folder Include="ViewModels\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include=".github\worflows\ci.yml" />
+  </ItemGroup>
+
 </Project>
