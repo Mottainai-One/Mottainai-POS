@@ -130,11 +130,11 @@ namespace PDVMottainai.Views
         }
 
         // Sempre que o usuário mudar algo em suas credenciais:
-        private void txtUserName_TextChanged(object sender, TextChangedEventArgs e){FazerLogin();}
-        private void txtPasswordClose_PasswordChanged(object sender, RoutedEventArgs e){FazerLogin();}
+        private void txtUserName_TextChanged(object sender, TextChangedEventArgs e){ TakeStores();}
+        private void txtPasswordClose_PasswordChanged(object sender, RoutedEventArgs e){ TakeStores();}
 
         // Fazer login
-        private void FazerLogin()
+        private void TakeStores()
         {
             var listUsers = MockApiService.Users;
 
@@ -153,6 +153,20 @@ namespace PDVMottainai.Views
                 store.ItemsSource = null;
             }
         }
+
+        private void LogIn_Click(object sender, RoutedEventArgs e)
+        {
+            var listUsers = MockApiService.Users;
+
+            var UserFound = listUsers.FirstOrDefault(e => e.Email == txtUserName.Text && (e.PasswordHash == txtPasswordOpen.Text || e.PasswordHash == txtPasswordClose.Password));
+
+            if (UserFound != null)
+            {
+                this.NavigationService.Navigate(new Uri("/Views/salepage.xaml", UriKind.Relative));
+            }
+
+        }
+
     }
 
 

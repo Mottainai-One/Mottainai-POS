@@ -332,7 +332,8 @@
                         Foreground="White" 
                         BorderThickness="0"
                         Padding="150,10"
-                        Cursor="Hand">
+                        Cursor="Hand" 
+                        Click="LogIn_Click">
                         <TextBlock 
                             Text="Iniciar"
                             FontWeight="Bold"
