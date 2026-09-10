@@ -55,7 +55,7 @@ namespace PDVMottainai.Views
 
             if (employeeFound != null)
             {
-                // Filtra considerando o cenário onde o funcionário pode ter StoreId igual ou uma lista
+                // Filtra as lojas do funcionário
                 var lojasFiltradas = listStores.Where(s => s.StoreId == employeeFound.StoreId);
 
                 Stores.Clear();
@@ -68,11 +68,13 @@ namespace PDVMottainai.Views
                 store.ItemsSource = Stores;
                 store.DisplayMemberPath = "Name";
 
-                // Se houver itens, já deixa o primeiro selecionado para testar
+                // Se houver itens, já deixa o primeiro selecionado
                 if (Stores.Count > 0)
                 {
                     store.SelectedIndex = 0;
                 }
+
+                
             }
         }
 
@@ -162,12 +164,20 @@ namespace PDVMottainai.Views
 
             if (UserFound != null)
             {
-                this.NavigationService.Navigate(new Uri("/Views/salepage.xaml", UriKind.Relative));
+                //  Pega diretamente o objeto RetailStore selecionado no ComboBox
+                if (store.SelectedItem is PDVMottainai.Models.RetailStore lojaSelecionada)
+                {
+                    salePage proximaPagina = new salePage(lojaSelecionada.Name, UserFound.Email);
+
+                    this.NavigationService.Navigate(proximaPagina);
+                }
+                else
+                {
+                    MessageBox.Show("Por favor, selecione uma loja.");
+                }
             }
 
         }
 
     }
-
-
 }
