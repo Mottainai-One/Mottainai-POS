@@ -6,7 +6,6 @@
       xmlns:local="clr-namespace:PDVMottainai.Views"
       mc:Ignorable="d"
       Title="salePage" 
-      Height="768" Width="1366"
       >
     <Grid 
         Background="White"
@@ -25,6 +24,7 @@
             
         </Grid>
         
+       
         <Grid 
             Grid.Row="1">
             <Grid.RowDefinitions>
@@ -34,9 +34,172 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1*"/>
                 <ColumnDefinition Width="2*"/>
-                <ColumnDefinition Width="4*"/>
                 <ColumnDefinition Width="3*"/>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="2*"/>
             </Grid.ColumnDefinitions>
+
+            <Border
+                Background="#E4F4EA"
+                BorderBrush="Black"
+                BorderThickness="1"
+                Grid.Row="0">
+                <TextBlock
+                    Text="Nº Venda"
+                    FontSize="22"
+                    HorizontalAlignment="Left"
+                    Margin="10,0,0,0"
+                    VerticalAlignment="Center"
+                    FontFamily="./Fonts/#DM Sans"
+                    FontWeight="Medium"
+                    />
+            </Border>
+            <Border
+                BorderBrush="Black"
+                BorderThickness="1"
+                Grid.Row="1">
+                <TextBlock
+                    Text="34"
+                    FontSize="22"
+                    HorizontalAlignment="Left"
+                    Margin="10,0,0,0"
+                    VerticalAlignment="Center"
+                    FontFamily="./Fonts/#DM Sans"
+                    />
+            </Border>
+
+            <Border
+                Background="#E4F4EA"
+                BorderBrush="Black"
+                BorderThickness="1"
+                Grid.Row="0"
+                Grid.Column="1">
+                <TextBlock
+                    Text="Data Venda"
+                    FontSize="22"
+                    HorizontalAlignment="Left"
+                    Margin="10,0,0,0"
+                    VerticalAlignment="Center"
+                    FontFamily="./Fonts/#DM Sans"
+                    FontWeight="Medium"
+                    />
+            </Border>
+            <Border
+                BorderBrush="Black"
+                BorderThickness="1"
+                Grid.Row="1"
+                Grid.Column="1">
+                <TextBlock
+                    Text="09/09/2026 09:35:54"
+                    FontSize="22"
+                    HorizontalAlignment="Left"
+                    Margin="10,0,0,0"
+                    VerticalAlignment="Center"
+                    FontFamily="./Fonts/#DM Sans"
+                    />
+            </Border>
+            
+
+            <Border
+                Background="#E4F4EA"
+                BorderBrush="Black"
+                BorderThickness="1"
+                Grid.Row="0"
+                Grid.Column="2">
+                <TextBlock
+                    Text="Cliente"
+                    FontSize="22"
+                    HorizontalAlignment="Left"
+                    Margin="10,0,0,0"
+                    VerticalAlignment="Center"
+                    FontFamily="./Fonts/#DM Sans"
+                    FontWeight="Medium"
+                    />
+            </Border>
+            <Border
+                BorderBrush="Black"
+                BorderThickness="1"
+                Grid.Row="1"
+                Grid.Column="2">
+                <TextBlock
+                    Text="Não Selecionado"
+                    FontSize="22"
+                    HorizontalAlignment="Left"
+                    Margin="10,0,0,0"
+                    VerticalAlignment="Center"
+                    FontFamily="./Fonts/#DM Sans"
+                    />
+            </Border>
+
+            <Border
+                Background="#E4F4EA"
+                BorderBrush="Black"
+                BorderThickness="1"
+                Grid.Row="0"
+                Grid.Column="3">
+                <TextBlock
+                    Text="Vendedor"
+                    FontSize="22"
+                    HorizontalAlignment="Left"
+                    Margin="10,0,0,0"
+                    VerticalAlignment="Center"
+                    FontFamily="./Fonts/#DM Sans"
+                    FontWeight="Medium"
+                    />
+            </Border>
+            <Border
+                BorderBrush="Black"
+                BorderThickness="1"
+                Grid.Row="1"
+                Grid.Column="3">
+                <TextBlock
+                    Text="Guilherme"
+                    FontSize="22"
+                    HorizontalAlignment="Left"
+                    Margin="10,0,0,0"
+                    VerticalAlignment="Center"
+                    FontFamily="./Fonts/#DM Sans"
+                    />
+            </Border>
+
+            <Border
+                Background="#E4F4EA"
+                BorderBrush="Black"
+                BorderThickness="1"
+                Grid.Row="0"
+                Grid.Column="4">
+                <TextBlock
+                    Text="Loja"
+                    FontSize="22"
+                    HorizontalAlignment="Left"
+                    Margin="10,0,0,0"
+                    VerticalAlignment="Center"
+                    FontFamily="./Fonts/#DM Sans"
+                    FontWeight="Medium"
+                    />
+            </Border>
+            <Border
+                BorderBrush="Black"
+                BorderThickness="1"
+                Grid.Row="1"
+                Grid.Column="4">
+                <TextBlock
+                    Text="Unidade Paulista"
+                    FontSize="22"
+                    HorizontalAlignment="Left"
+                    Margin="10,0,0,0"
+                    VerticalAlignment="Center"
+                    FontFamily="./Fonts/#DM Sans"
+                    />
+            </Border>
+
+
+
+
+
+
+
+
 
 
 
