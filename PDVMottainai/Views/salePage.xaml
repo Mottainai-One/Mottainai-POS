@@ -24,12 +24,24 @@
         <Grid Grid.Row="0" Background="#377448">
             
         </Grid>
-        <Grid Grid.Row="1" Background="Purple">
+        
+        <Grid 
+            Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="307*"/>
-                <ColumnDefinition Width="376*"/>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="4*"/>
+                <ColumnDefinition Width="3*"/>
             </Grid.ColumnDefinitions>
+
+
+
         </Grid>
+        
         <Grid Grid.Row="2" Background="BlanchedAlmond"></Grid>
         <Grid Grid.Row="3" Background="Blue"></Grid>
         <Grid Grid.Row="4" Background="YellowGreen"></Grid>
