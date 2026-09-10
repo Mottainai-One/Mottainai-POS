@@ -5,8 +5,35 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:local="clr-namespace:PDVMottainai.Views"
       mc:Ignorable="d"
-      Title="salePage" Height="450" Width="800">
-    <Grid>
+      Title="salePage" 
+      Height="768" Width="1366"
+      >
+    <Grid 
+        Background="White"
+        HorizontalAlignment="Stretch" 
+        VerticalAlignment="Stretch">
+        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="1*"/>
+            <RowDefinition Height="2*"/>
+            <RowDefinition Height="2*"/>
+            <RowDefinition Height="12*"/>
+            <RowDefinition Height="2*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Background="#377448">
+            
+        </Grid>
+        <Grid Grid.Row="1" Background="Purple">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="307*"/>
+                <ColumnDefinition Width="376*"/>
+            </Grid.ColumnDefinitions>
+        </Grid>
+        <Grid Grid.Row="2" Background="BlanchedAlmond"></Grid>
+        <Grid Grid.Row="3" Background="Blue"></Grid>
+        <Grid Grid.Row="4" Background="YellowGreen"></Grid>
+
         <!-- Seus elementos da tela de vendas vão aqui dentro -->
     </Grid>
 </Page>
