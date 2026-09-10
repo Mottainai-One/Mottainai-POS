@@ -28,36 +28,31 @@ namespace PDVMottainai.Views
             InitializeComponent();
             
         }
-        public salePage(string loja, string username)
+        public salePage(string store, string emailUser)
         {
-            InitializeComponent(); // Carrega os elementos visuais da página
-
-            string storeSelected = loja; // Guarda o valor na variável
-            string usernameUser = username;
-
+            InitializeComponent(); 
 
 
             int numSale = 0;
-            PopularSaleInformations(numSale, storeSelected, username);
-
-            // 3. Exemplo: Jogando o valor recebido em um TextBlock da salepage chamado "txtTitulo"
-            // txtTitulo.Text = "Loja escolhida: " + _lojaSelecionada;
+            PopularSaleInformations(numSale, store, emailUser);
         }
 
-        public void PopularSaleInformations(int numSale, string storeSelected, string usernameUSer)
+        public void PopularSaleInformations(int numSale, string storeSelected, string emailUser)
         {
             // Número da venda do turno
             numSale += 1;
             txtnumSale.Text = numSale.ToString();
+
             // Data e hora
             ChangeDateTime();
+
             // Loja
             txtStore.Text = storeSelected;
-            // Vendedor
 
+            // E-mail vendedor
             var listEmployees = MockApiService.Employees;
 
-            var employeeFound = listEmployees.FirstOrDefault(e => e.Email == usernameUSer);
+            var employeeFound = listEmployees.FirstOrDefault(e => e.Email == emailUser);
 
             if (employeeFound != null)
             {

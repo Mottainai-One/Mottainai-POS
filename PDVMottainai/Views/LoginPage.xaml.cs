@@ -132,7 +132,7 @@ namespace PDVMottainai.Views
         }
 
         // Sempre que o usuário mudar algo em suas credenciais:
-        private void txtUserName_TextChanged(object sender, TextChangedEventArgs e){ TakeStores();}
+        private void txtEmail_TextChanged(object sender, TextChangedEventArgs e){ TakeStores();}
         private void txtPasswordClose_PasswordChanged(object sender, RoutedEventArgs e){ TakeStores();}
 
         // Fazer login
@@ -140,7 +140,7 @@ namespace PDVMottainai.Views
         {
             var listUsers = MockApiService.Users;
 
-            var UserFound = listUsers.FirstOrDefault(e => e.Email == txtUserName.Text && (e.PasswordHash == txtPasswordOpen.Text || e.PasswordHash == txtPasswordClose.Password));
+            var UserFound = listUsers.FirstOrDefault(e => e.Email == txtEmail.Text && (e.PasswordHash == txtPasswordOpen.Text || e.PasswordHash == txtPasswordClose.Password));
 
             if (UserFound != null)
             {
@@ -160,14 +160,14 @@ namespace PDVMottainai.Views
         {
             var listUsers = MockApiService.Users;
 
-            var UserFound = listUsers.FirstOrDefault(e => e.Email == txtUserName.Text && (e.PasswordHash == txtPasswordOpen.Text || e.PasswordHash == txtPasswordClose.Password));
+            var UserFound = listUsers.FirstOrDefault(e => e.Email == txtEmail.Text && (e.PasswordHash == txtPasswordOpen.Text || e.PasswordHash == txtPasswordClose.Password));
 
             if (UserFound != null)
             {
                 //  Pega diretamente o objeto RetailStore selecionado no ComboBox
-                if (store.SelectedItem is PDVMottainai.Models.RetailStore lojaSelecionada)
+                if (store.SelectedItem is PDVMottainai.Models.RetailStore selectedStore)
                 {
-                    salePage proximaPagina = new salePage(lojaSelecionada.Name, UserFound.Email);
+                    salePage proximaPagina = new salePage(selectedStore.Name, UserFound.Email);
 
                     this.NavigationService.Navigate(proximaPagina);
                 }
