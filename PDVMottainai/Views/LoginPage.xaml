@@ -268,17 +268,17 @@
                     Margin="140,275,140,0"
                     Grid.Column="0"
                     Panel.ZIndex="2">
-                    <TextBox x:Name="txtUserName"
+                    <TextBox x:Name="txtEmail"
                         Background="Transparent" 
                         BorderThickness="0" 
                         VerticalContentAlignment="Center"
                         Padding="0" 
                         FontSize="20"
-                        TextChanged="txtUserName_TextChanged"/>
+                        TextChanged="txtEmail_TextChanged"/>
                 </Border>
 
                 <TextBlock
-                    Text="Nome de usuário" 
+                    Text="E-mail do usuário" 
                     FontFamily="./Fonts/#DM Sans" 
                     FontSize="15"
                     FontWeight="Regular"
@@ -332,7 +332,8 @@
                         Foreground="White" 
                         BorderThickness="0"
                         Padding="150,10"
-                        Cursor="Hand">
+                        Cursor="Hand" 
+                        Click="LogIn_Click">
                         <TextBlock 
                             Text="Iniciar"
                             FontWeight="Bold"

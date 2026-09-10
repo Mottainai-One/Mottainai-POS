@@ -93,7 +93,7 @@ namespace PDVMottainai.Services
         RoleId = 1,
         Name = "João Silva",
         Cpf = "12345678901",
-        Email = "joao.silva@empresa.com",
+        Email = "1",
         Phone = "11987654321",
         Active = true,
         HireDate = DateTime.Today.AddMonths(-6),
