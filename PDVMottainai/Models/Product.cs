@@ -23,5 +23,7 @@ namespace PDVMottainai.Models
         public DateTime UpdatedAt { get; set; } = DateTime.Now;
         public DateTime? DeletedAt { get; set; }
         public int Version { get; set; } = 1;
+    
+
     }
 }

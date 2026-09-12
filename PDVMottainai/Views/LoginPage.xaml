@@ -50,7 +50,7 @@
             </Setter>
         </Style>
     </Page.Resources>
-        
+
     <Grid 
         Background="White"
         HorizontalAlignment="Stretch" 
@@ -136,7 +136,6 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-
             <Grid Grid.Column="0" Background="#377448">
                 <Rectangle
                     Fill="#377448" 
@@ -168,7 +167,6 @@
                         Text="Esqueceu a senha?"
                         TextDecorations="Underline"/>
                 </Button>
-
                 <Button
                     FontStyle="Oblique"
                     Foreground="#377448"
@@ -211,7 +209,6 @@
                     Source="/IMG/mottainai.png"
                     Margin="340,-300,320,340"
                     Panel.ZIndex="1"/>
-
                 <Border 
                     BorderBrush="#377448" 
                     BorderThickness="0,0,0,2" 
@@ -287,7 +284,7 @@
                     Margin="140,250,0,0"
                     Panel.ZIndex="1"
                     Foreground="#38423c"/>
-                
+
                 <TextBlock
                     Text="Unidade do terminal" 
                     FontFamily="./Fonts/#DM Sans" 
@@ -298,7 +295,7 @@
                     Margin="140,510,0,0"
                     Panel.ZIndex="1"
                     Foreground="#38423c"/>
-                
+
                 <TextBlock
                     Text="Unidade da loja" 
                     FontFamily="./Fonts/#DM Sans" 
@@ -389,9 +386,7 @@
                         Width="493"/>
                 </Border>
 
-
             </Grid>
         </Grid>
     </Grid>
 </Page>
-

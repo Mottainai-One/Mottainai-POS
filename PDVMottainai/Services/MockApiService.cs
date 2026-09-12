@@ -83,7 +83,6 @@ namespace PDVMottainai.Services
             }
         };
         
-
         public static List<Employee> Employees { get; set; } = new List<Employee>
 {
     new Employee
@@ -234,6 +233,134 @@ namespace PDVMottainai.Services
         CreatedAt = DateTime.Now.AddYears(-1),
         UpdatedAt = DateTime.Now.AddDays(-10),
         DeletedAt = null
+    }
+};
+
+        public static List<ProductCategory> Categories { get; set; } = new List<ProductCategory>
+{
+    new ProductCategory
+    {
+        CategoryId = 1,
+        Name = "Eletrônicos",
+        Description = "Dispositivos eletrônicos, smartphones e acessórios",
+        Active = true,
+        CreatedAt = DateTime.Now.AddMonths(-6),
+        UpdatedAt = DateTime.Now.AddDays(-15),
+        DeletedAt = null
+    },
+    new ProductCategory
+    {
+        CategoryId = 2,
+        Name = "Vestuário",
+        Description = "Roupas masculinas, femininas e infantis",
+        Active = true,
+        CreatedAt = DateTime.Now.AddMonths(-4),
+        UpdatedAt = DateTime.Now.AddDays(-5),
+        DeletedAt = null
+    },
+    new ProductCategory
+    {
+        CategoryId = 3,
+        Name = "Alimentos e Bebidas",
+        Description = "Produtos de mercearia e perecíveis",
+        Active = true,
+        CreatedAt = DateTime.Now.AddMonths(-1),
+        UpdatedAt = DateTime.Now.AddDays(-2),
+        DeletedAt = null
+    },
+    new ProductCategory
+    {
+        CategoryId = 4,
+        Name = "Casa e Decoração",
+        Description = "Utensílios domésticos e itens decorativos",
+        Active = false,
+        CreatedAt = DateTime.Now.AddYears(-1),
+        UpdatedAt = DateTime.Now.AddMonths(-3),
+        DeletedAt = DateTime.Now.AddMonths(-3)
+    }
+};
+
+        public static List<Product> Products { get; set; } = new List<Product>
+{
+    new Product
+    {
+        ProductId = 1,
+        CategoryId = 1,
+        TaxProfileId = 1,
+        Sku = "ELET-SM-001",
+        Barcode = "7891029384756",
+        Ncm = "8517.13.00",
+        Cest = "21.028.00",
+        Name = "Smartphone Quantum X 128GB",
+        Description = "Smartphone com tela OLED de 6.4 polegadas, 6GB RAM e câmera dupla",
+        Brand = "Quantum",
+        UnitMeasure = "UN",
+        Weight = 0.185m,
+        Active = true,
+        CreatedAt = DateTime.Now.AddMonths(-5),
+        UpdatedAt = DateTime.Now.AddDays(-10),
+        DeletedAt = null,
+        Version = 1
+    },
+    new Product
+    {
+        ProductId = 2,
+        CategoryId = 2,
+        TaxProfileId = 2,
+        Sku = "VEST-CM-042",
+        Barcode = "7894561237890",
+        Ncm = "6109.10.00",
+        Cest = "28.038.00",
+        Name = "Camiseta Básica Algodão Pima Preta",
+        Description = "Camiseta 100% algodão pima, modelagem slim fit",
+        Brand = "UrbanStyle",
+        UnitMeasure = "UN",
+        Weight = 0.210m,
+        Active = true,
+        CreatedAt = DateTime.Now.AddMonths(-3),
+        UpdatedAt = DateTime.Now.AddDays(-2),
+        DeletedAt = null,
+        Version = 1
+    },
+    new Product
+    {
+        ProductId = 3,
+        CategoryId = 3,
+        TaxProfileId = 3,
+        Sku = "ALIM-CA-105",
+        Barcode = "7897894561230",
+        Ncm = "0901.21.00",
+        Cest = "17.012.00",
+        Name = "Café Gourmet em Grãos 500g",
+        Description = "Café 100% arábica torra média, notas de chocolate e castanha",
+        Brand = "Café Serra",
+        UnitMeasure = "UN",
+        Weight = 0.500m,
+        Active = true,
+        CreatedAt = DateTime.Now.AddMonths(-1),
+        UpdatedAt = DateTime.Now.AddDays(-1),
+        DeletedAt = null,
+        Version = 2
+    },
+    new Product
+    {
+        ProductId = 4,
+        CategoryId = 4,
+        TaxProfileId = 1,
+        Sku = "CASA-LU-088",
+        Barcode = "7893216549870",
+        Ncm = "9405.20.00",
+        Cest = "12.005.00",
+        Name = "Luminária de Mesa LED Minimalista",
+        Description = "Luminária articulada com controle de intensidade de luz touch",
+        Brand = "Lumina",
+        UnitMeasure = "UN",
+        Weight = 0.950m,
+        Active = false,
+        CreatedAt = DateTime.Now.AddYears(-1),
+        UpdatedAt = DateTime.Now.AddMonths(-4),
+        DeletedAt = DateTime.Now.AddMonths(-4),
+        Version = 1
     }
 };
     }
