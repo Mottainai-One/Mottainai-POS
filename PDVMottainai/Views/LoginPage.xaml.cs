@@ -55,7 +55,7 @@ namespace PDVMottainai.Views
 
             if (employeeFound != null)
             {
-                // Filtra considerando o cenário onde o funcionário pode ter StoreId igual ou uma lista
+                // Filtra as lojas do funcionário
                 var lojasFiltradas = listStores.Where(s => s.StoreId == employeeFound.StoreId);
 
                 Stores.Clear();
@@ -68,11 +68,13 @@ namespace PDVMottainai.Views
                 store.ItemsSource = Stores;
                 store.DisplayMemberPath = "Name";
 
-                // Se houver itens, já deixa o primeiro selecionado para testar
+                // Se houver itens, já deixa o primeiro selecionado
                 if (Stores.Count > 0)
                 {
                     store.SelectedIndex = 0;
                 }
+
+                
             }
         }
 
@@ -130,15 +132,15 @@ namespace PDVMottainai.Views
         }
 
         // Sempre que o usuário mudar algo em suas credenciais:
-        private void txtUserName_TextChanged(object sender, TextChangedEventArgs e){FazerLogin();}
-        private void txtPasswordClose_PasswordChanged(object sender, RoutedEventArgs e){FazerLogin();}
+        private void txtEmail_TextChanged(object sender, TextChangedEventArgs e){ TakeStores();}
+        private void txtPasswordClose_PasswordChanged(object sender, RoutedEventArgs e){ TakeStores();}
 
         // Fazer login
-        private void FazerLogin()
+        private void TakeStores()
         {
             var listUsers = MockApiService.Users;
 
-            var UserFound = listUsers.FirstOrDefault(e => e.Email == txtUserName.Text && (e.PasswordHash == txtPasswordOpen.Text || e.PasswordHash == txtPasswordClose.Password));
+            var UserFound = listUsers.FirstOrDefault(e => e.Email == txtEmail.Text && (e.PasswordHash == txtPasswordOpen.Text || e.PasswordHash == txtPasswordClose.Password));
 
             if (UserFound != null)
             {
@@ -153,7 +155,29 @@ namespace PDVMottainai.Views
                 store.ItemsSource = null;
             }
         }
+
+        private void LogIn_Click(object sender, RoutedEventArgs e)
+        {
+            var listUsers = MockApiService.Users;
+
+            var UserFound = listUsers.FirstOrDefault(e => e.Email == txtEmail.Text && (e.PasswordHash == txtPasswordOpen.Text || e.PasswordHash == txtPasswordClose.Password));
+
+            if (UserFound != null)
+            {
+                //  Pega diretamente o objeto RetailStore selecionado no ComboBox
+                if (store.SelectedItem is PDVMottainai.Models.RetailStore selectedStore)
+                {
+                    salePage proximaPagina = new salePage(selectedStore.Name, UserFound.Email);
+
+                    this.NavigationService.Navigate(proximaPagina);
+                }
+                else
+                {
+                    MessageBox.Show("Por favor, selecione uma loja.");
+                }
+            }
+
+        }
+
     }
-
-
 }
