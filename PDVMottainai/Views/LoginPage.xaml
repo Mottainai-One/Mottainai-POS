@@ -8,10 +8,8 @@
       Title="LoginPage"
       x:Name="Login"
       Background="#377448">
-    <!-- Cor de fundo principal -->
 
     <Page.Resources>
-        <!-- Estilo base para botões transparentes -->
         <Style TargetType="Button" x:Key="TransparentButton">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -20,14 +18,14 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
 
-        <!-- Estilo do ComboBox (Simplificado e Responsivo) -->
         <Style x:Key="FlatComboBoxStyle" TargetType="ComboBox">
             <Setter Property="Background" Value="White"/>
             <Setter Property="BorderBrush" Value="#377448"/>
@@ -40,99 +38,174 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <!-- Coluna da Esquerda (Imagem) -->
             <ColumnDefinition Width="*" />
-            <!-- Coluna da Direita (Formulário) -->
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- LADO ESQUERDO: Imagem -->
-        <Grid Grid.Column="0" Margin="40">
+        <Grid Grid.Column="0" 
+              Margin="40">
             <Image Source="/IMG/otter.png" 
                    Stretch="Uniform" 
                    HorizontalAlignment="Center" 
                    VerticalAlignment="Center"/>
         </Grid>
 
-        <!-- LADO DIREITO: Fundo Branco Arredondado -->
-        <Border Grid.Column="1" Background="White" CornerRadius="70,0,0,70">
+        <Border Grid.Column="1" 
+                Background="White" 
+                CornerRadius="70,0,0,70">
 
-            <!-- ScrollViewer garante que o form não quebre em telas muito baixinhas -->
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" 
+                          HorizontalScrollBarVisibility="Disabled">
 
-                <!-- O StackPanel empilha os itens verticalmente -->
-                <StackPanel MaxWidth="450" VerticalAlignment="Center" Margin="40">
+                <StackPanel MaxWidth="450" 
+                            VerticalAlignment="Center" 
+                            Margin="40">
 
-                    <!-- Logo Superior -->
-                    <Image Source="/IMG/mottainai.png" Stretch="Uniform" MaxHeight="120" Margin="0,0,0,20"/>
+                    <Image Source="/IMG/mottainai.png" 
+                           Stretch="Uniform" 
+                           MaxHeight="120" 
+                           Margin="0,0,0,20"/>
 
-                    <!-- Título -->
                     <TextBlock Text="Iniciar Sessão" 
-                               FontFamily="./Fonts/#DM Sans" FontSize="30" FontWeight="Bold" Foreground="Black" 
-                               HorizontalAlignment="Center" Margin="0,0,0,30"/>
+                               FontFamily="./Fonts/#DM Sans" 
+                               FontSize="30" 
+                               FontWeight="Bold" 
+                               Foreground="Black" 
+                               HorizontalAlignment="Center" 
+                               Margin="0,0,0,30"/>
 
-                    <!-- Erro (Fica oculto por padrão) -->
-                    <TextBlock x:Name="txtMsg" Foreground="Red" FontSize="14" FontWeight="Bold" 
-                               HorizontalAlignment="Center" Visibility="Collapsed" Margin="0,0,0,10"/>
+                    <TextBlock x:Name="txtMsg" 
+                               Foreground="Red" 
+                               FontSize="14" 
+                               FontWeight="Bold" 
+                               HorizontalAlignment="Center" 
+                               Visibility="Collapsed" 
+                               Margin="0,0,0,10"/>
 
-                    <!-- Input: E-mail -->
-                    <TextBlock Text="E-mail do usuário" FontFamily="./Fonts/#DM Sans" FontSize="15" Foreground="#38423c" Margin="0,0,0,5"/>
-                    <Border BorderBrush="#377448" BorderThickness="0,0,0,2" Margin="0,0,0,20">
-                        <TextBox x:Name="txtEmail" Background="Transparent" BorderThickness="0" FontSize="20" Padding="0,5"
+                    <TextBlock Text="E-mail do usuário" 
+                               FontFamily="./Fonts/#DM Sans" 
+                               FontSize="15" Foreground="#38423c"
+                               Margin="0,0,0,5"/>
+                    <Border BorderBrush="#377448" 
+                            BorderThickness="0,0,0,2" 
+                            Margin="0,0,0,20">
+                        <TextBox x:Name="txtEmail" 
+                                 Background="Transparent" 
+                                 BorderThickness="0" 
+                                 FontSize="20" 
+                                 Padding="0,5"
                                  TextChanged="txtEmail_TextChanged"/>
                     </Border>
 
-                    <!-- Input: Senha -->
-                    <TextBlock Text="Senha" FontFamily="./Fonts/#DM Sans" FontSize="15" Foreground="#38423c" Margin="0,0,0,5"/>
-                    <Border BorderBrush="#377448" BorderThickness="0,0,0,2" Margin="0,0,0,10">
+
+                    <TextBlock Text="Senha" 
+                               FontFamily="./Fonts/#DM Sans" 
+                               FontSize="15" 
+                               Foreground="#38423c" 
+                               Margin="0,0,0,5"/>
+                    <Border BorderBrush="#377448" 
+                            BorderThickness="0,0,0,2" 
+                            Margin="0,0,0,10">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <PasswordBox x:Name="txtPasswordClose" Grid.Column="0" Background="Transparent" BorderThickness="0" FontSize="20" Padding="0,5"
+                            <PasswordBox x:Name="txtPasswordClose" 
+                                         Grid.Column="0" 
+                                         Background="Transparent" 
+                                         BorderThickness="0" 
+                                         FontSize="20" 
+                                         Padding="0,5"
                                          PasswordChanged="txtPasswordClose_PasswordChanged"/>
 
-                            <TextBox x:Name="txtPasswordOpen" Grid.Column="0" Background="Transparent" BorderThickness="0" FontSize="20" Padding="0,5" Visibility="Collapsed"/>
+                            <TextBox x:Name="txtPasswordOpen" 
+                                     Grid.Column="0" 
+                                     Background="Transparent" 
+                                     BorderThickness="0" 
+                                     FontSize="20" 
+                                     Padding="0,5" 
+                                     Visibility="Collapsed"/>
 
-                            <!-- Botão do Olho -->
-                            <Button Grid.Column="1" Style="{StaticResource TransparentButton}" Click="TogglePassword_Click" Margin="5,0,0,0">
-                                <Image x:Name="imgEye" Source="/IMG/eyeClose.png" Width="30" Height="30" Stretch="Uniform"/>
+
+                            <Button Grid.Column="1" 
+                                    Style="{StaticResource TransparentButton}" 
+                                    Click="TogglePassword_Click" 
+                                    Margin="5,0,0,0">
+                                <Image x:Name="imgEye" 
+                                       Source="/IMG/eyeCloseIcon.png" 
+                                       Width="30" Height="30" 
+                                       Stretch="Uniform"/>
                             </Button>
                         </Grid>
                     </Border>
 
-                    <!-- Link: Esqueceu a Senha -->
-                    <Button Style="{StaticResource TransparentButton}" HorizontalAlignment="Right" Margin="0,0,0,20">
-                        <TextBlock x:Name="btnForgotPassword" Text="Esqueceu a senha?" TextDecorations="Underline" Foreground="#377448" FontStyle="Oblique" FontSize="14"/>
+
+                    <Button Style="{StaticResource TransparentButton}" 
+                            HorizontalAlignment="Right" 
+                            Margin="0,0,0,20">
+                        <TextBlock x:Name="btnForgotPassword" 
+                                   Text="Esqueceu a senha?" 
+                                   TextDecorations="Underline" 
+                                   Foreground="#377448" 
+                                   FontStyle="Oblique" 
+                                   FontSize="14"/>
                     </Button>
 
-                    <!-- Input: Unidade da Loja -->
-                    <TextBlock Text="Unidade da loja" FontFamily="./Fonts/#DM Sans" FontSize="15" Foreground="#38423c" Margin="0,0,0,5"/>
-                    <ComboBox x:Name="store" Style="{StaticResource FlatComboBoxStyle}" 
-                              DisplayMemberPath="Name" SelectedValuePath="StoreId" 
-                              SelectionChanged="loja_SelectionChanged" Margin="0,0,0,20"/>
 
-                    <!-- Input: Unidade do Terminal -->
-                    <TextBlock Text="Unidade do terminal" FontFamily="./Fonts/#DM Sans" FontSize="15" Foreground="#38423c" Margin="0,0,0,30"/>
-                    <ComboBox x:Name="terminal" Style="{StaticResource FlatComboBoxStyle}" 
-                              DisplayMemberPath="Name" SelectedValuePath="StoreId" Margin="0,0,0,40"/>
+                    <TextBlock Text="Unidade da loja" 
+                               FontFamily="./Fonts/#DM Sans" 
+                               FontSize="15" 
+                               Foreground="#38423c" 
+                               Margin="0,0,0,5"/>
+                    <ComboBox x:Name="store" 
+                              Style="{StaticResource FlatComboBoxStyle}" 
+                              DisplayMemberPath="Name" 
+                              SelectedValuePath="StoreId" 
+                              SelectionChanged="loja_SelectionChanged" 
+                              Margin="0,0,0,20"/>
 
-                    <!-- Botão: Iniciar -->
-                    <Button Background="#377448" Foreground="White" BorderThickness="0" Cursor="Hand" Click="LogIn_Click">
+
+                    <TextBlock Text="Unidade do terminal" 
+                               FontFamily="./Fonts/#DM Sans" 
+                               FontSize="15" 
+                               Foreground="#38423c" 
+                               Margin="0,0,0,30"/>
+                    <ComboBox x:Name="terminal"
+                              Style="{StaticResource FlatComboBoxStyle}" 
+                              DisplayMemberPath="Name" 
+                              SelectedValuePath="StoreId" 
+                              Margin="0,0,0,40"/>
+
+                    <Button Background="#377448" 
+                            Foreground="White" 
+                            BorderThickness="0" 
+                            Cursor="Hand" 
+                            Click="LogIn_Click">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
-                                <Border CornerRadius="15" Background="{TemplateBinding Background}" Padding="0,15">
-                                    <TextBlock Text="Iniciar" FontWeight="Bold" Foreground="White" FontSize="20" HorizontalAlignment="Center"/>
+                                <Border CornerRadius="15" 
+                                        Background="{TemplateBinding Background}" 
+                                        Padding="0,15">
+                                    <TextBlock Text="Iniciar" 
+                                               FontWeight="Bold" 
+                                               Foreground="White" 
+                                               FontSize="20" 
+                                               HorizontalAlignment="Center"/>
                                 </Border>
                             </ControlTemplate>
                         </Button.Template>
                     </Button>
 
-                    <!-- Link: Precisa de Ajuda -->
-                    <Button Style="{StaticResource TransparentButton}" HorizontalAlignment="Center" Margin="0,30,0,0">
-                        <TextBlock Text="Precisa de Ajuda?" TextDecorations="Underline" Foreground="#377448" FontStyle="Oblique" FontSize="15"/>
+                    <Button Style="{StaticResource TransparentButton}" 
+                            HorizontalAlignment="Center" 
+                            Margin="0,30,0,0">
+                        <TextBlock Text="Precisa de Ajuda?" 
+                                   TextDecorations="Underline" 
+                                   Foreground="#377448" 
+                                   FontStyle="Oblique" 
+                                   FontSize="15"/>
                     </Button>
 
                 </StackPanel>

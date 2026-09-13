@@ -36,8 +36,224 @@
                 FontWeight="SemiBold"
                 Margin="0,0,30,0"/>
         </Grid>
-        <Grid Grid.Row="1" Background="Aquamarine"/>
-        <Grid Grid.Row="2" Background="Khaki"/>
+        <Grid Grid.Row="1" Background="#E8F7ED">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="5*"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="6*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="8*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="8*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="8*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="7*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                
+                <Grid Grid.Column="2" Background="#E8F7ED"/>
+                <Grid Grid.Column="8" Background="#E8F7ED"/>
+                <Grid Grid.Column="4" Background="#E8F7ED"/>
+                <Grid Grid.Column="6" Background="#E8F7ED"/>
+                <Grid Grid.Column="10" Background="#E8F7ED"/>
+
+                <Grid Grid.Column="0" Background="#E8F7ED"/>
+                <Border Grid.Column="1" 
+                        CornerRadius="10" 
+                        Background="White"
+                        BorderBrush="LightGray"
+                        BorderThickness="0.5">
+                    <Border.Effect>
+                        <DropShadowEffect
+                            Color="Black" 
+                          Direction="315" 
+                          ShadowDepth="0" 
+                          BlurRadius="10" 
+                          Opacity="0.3"/>
+                    </Border.Effect>
+
+                    <Grid>
+                        <Image
+                            Source="/IMG/CartIcon.png"
+                            HorizontalAlignment="Left"
+                            Margin="20,10,0,10"
+                            VerticalAlignment="Center"
+                        />
+                        <TextBlock
+                            Text="N° venda"
+                            HorizontalAlignment="Right"
+                            Margin="0,12,60,0"
+                            FontWeight="Regular"
+                            FontSize="15"/>
+                        <TextBlock x:Name="txtNumSale"
+                            HorizontalAlignment="Left"
+                            Margin="95,35,0,0"
+                            FontWeight="Bold"
+                            FontSize="15"/>
+                    </Grid>
+                    
+
+                </Border>
+                <Border Grid.Column="3" 
+                             CornerRadius="10" 
+                             Background="White"
+                             BorderBrush="LightGray"
+                             BorderThickness="0.5">
+                    <Border.Effect>
+                        <DropShadowEffect
+                                 Color="Black" 
+                               Direction="315" 
+                               ShadowDepth="0" 
+                               BlurRadius="10" 
+                               Opacity="0.3"/>
+                    </Border.Effect>
+
+                    <Grid>
+                        <Image
+                            Source="/IMG/documentIcon.png"
+                            HorizontalAlignment="Left"
+                            Margin="20,10,0,10"
+                            VerticalAlignment="Center"
+                        />
+                        <TextBlock
+                            Text="CPF do cliente"
+                            HorizontalAlignment="Left"
+                            Margin="90,12,0,0"
+                            FontWeight="Regular"
+                            FontSize="15"/>
+                        <TextBlock x:Name="txtNumSal"
+                                   Text="292.357.538-56"
+                            HorizontalAlignment="Left"
+                            Margin="95,35,0,0"
+                            FontWeight="Bold"
+                            FontSize="15"/>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="5"
+                             CornerRadius="10" 
+                             Background="White"
+                             BorderBrush="LightGray"
+                             BorderThickness="0.5">
+                    <Border.Effect>
+                        <DropShadowEffect
+                                 Color="Black" 
+                               Direction="315" 
+                               ShadowDepth="0" 
+                               BlurRadius="10" 
+                               Opacity="0.3"/>
+                    </Border.Effect>
+                    <Grid>
+                        <Image
+                            Source="/IMG/userIcon.png"
+                            HorizontalAlignment="Left"
+                            Margin="20,10,0,10"
+                            VerticalAlignment="Center"
+                        />
+                        <TextBlock
+                            Text="Nome do cliente"
+                            HorizontalAlignment="Left"
+                            Margin="90,12,0,0"
+                            FontWeight="Regular"
+                            FontSize="15"/>
+                        <TextBlock x:Name="txtNumSa"
+                                   Text="Rebecca Paulucci"
+                            HorizontalAlignment="Left"
+                            Margin="95,35,0,0"
+                            FontWeight="Bold"
+                            FontSize="15"/>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="7" 
+                             CornerRadius="10" 
+                             Background="White"
+                             BorderBrush="LightGray"
+                             BorderThickness="0.5">
+                    <Border.Effect>
+                        <DropShadowEffect
+                                 Color="Black" 
+                               Direction="315" 
+                               ShadowDepth="0" 
+                               BlurRadius="10" 
+                               Opacity="0.3"/>
+                    </Border.Effect>
+
+                    <Grid>
+                        <Image
+                            Source="/IMG/podiumIcon.png"
+                            HorizontalAlignment="Left"
+                            Margin="20,10,0,10"
+                            VerticalAlignment="Center"
+                        />
+                        <TextBlock
+                            Text="Nível do cliente"
+                            HorizontalAlignment="Left"
+                            Margin="90,12,0,0"
+                            FontWeight="Regular"
+                            FontSize="15"/>
+                        <TextBlock x:Name="txtNumS"
+                            Text="Nível sustentável"
+                            HorizontalAlignment="Left"
+                            Margin="95,35,0,0"
+                            FontWeight="Bold"
+                            FontSize="15"/>
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Column="9">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="7*"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Background="#E8F7ED"/>
+                    <Grid Grid.Row="2" Background="#E8F7ED"/>
+                    <Border Grid.Row="1" 
+                            CornerRadius="10"
+                            Background="#B3F1C7"
+                            BorderBrush="#4B9B62"
+                            BorderThickness="1">
+                        <Border.Effect>
+                            <DropShadowEffect
+                                 Color="Black" 
+                               Direction="315" 
+                               ShadowDepth="0" 
+                               BlurRadius="10" 
+                               Opacity="0.3"/>
+                        </Border.Effect>
+
+                        <Grid>
+                            <Image
+                                Source="/IMG/inProgressIcon.png"
+                                HorizontalAlignment="Left"
+                                Margin="20,10,0,10"
+                                VerticalAlignment="Center"
+                            />
+                            <TextBlock x:Name="txtNum"
+                                Text="Venda em andamento"
+                                HorizontalAlignment="Left"
+                                Margin="70,0,0,0"
+                                FontWeight="Bold"
+                                FontSize="15"
+                                VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                    
+                </Grid>
+                
+            </Grid>
+            
+        </Grid>
+        <Grid Grid.Row="2" Background="#E8F7ED"/>
         <Grid Grid.Row="3" Background="DarkGoldenrod"/>
 
     </Grid>

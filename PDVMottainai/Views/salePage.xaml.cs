@@ -41,7 +41,7 @@ namespace PDVMottainai.Views
         {
             // Número da venda do turno
             numSale += 1;
-            //txtnumSale.Text = numSale.ToString();
+            txtNumSale.Text = numSale.ToString();
 
             // Data e hora
             ChangeDateTime();
