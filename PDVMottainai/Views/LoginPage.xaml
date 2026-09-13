@@ -1,392 +1,215 @@
 ﻿<Page x:Class="PDVMottainai.Views.LoginPage"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:PDVMottainai.Views"
-        mc:Ignorable="d"
-        Title="LoginPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:local="clr-namespace:PDVMottainai.Views"
+      mc:Ignorable="d"
+      Title="LoginPage"
       x:Name="Login"
-      >
+      Background="#377448">
 
     <Page.Resources>
-        <Style x:Key="UnderlineTextBox" TargetType="TextBox">
+        <Style TargetType="Button" x:Key="TransparentButton">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="Gray"/>
-            <Setter Property="BorderThickness" Value="0,0,0,2"/>
-            <Setter Property="Padding" Value="5"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border x:Name="border" 
-                            Background="{TemplateBinding Background}" 
-                            BorderBrush="{TemplateBinding BorderBrush}" 
-                            BorderThickness="{TemplateBinding BorderThickness}">
-                            <ScrollViewer x:Name="PART_ContentHost" Focusable="false" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter TargetName="border" Property="BorderBrush" Value="#377448"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style TargetType="Button">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
-                        BorderBrush="{TemplateBinding BorderBrush}" 
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        CornerRadius="2">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
-                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}" 
-                                      Margin="{TemplateBinding Padding}"/>
+                        <Border Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <Style x:Key="FlatComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#377448"/>
+            <Setter Property="BorderThickness" Value="0,0,0,2"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="Padding" Value="0,5,0,5"/>
+        </Style>
     </Page.Resources>
 
-    <Grid 
-        Background="White"
-        HorizontalAlignment="Stretch" 
-        VerticalAlignment="Stretch">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
-        <Grid.Resources>
-            <Style x:Key="FlatComboBoxStyle" TargetType="ComboBox">
-                <Setter Property="Background" Value="LightBlue"/>
-                <Setter Property="BorderBrush" Value="Transparent"/>
-                <Setter Property="BorderThickness" Value="0"/>
-                <Setter Property="Foreground" Value="Black"/>
-                <Setter Property="HorizontalContentAlignment" Value="Left"/>
-                <Setter Property="VerticalContentAlignment" Value="Center"/>
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <ControlTemplate TargetType="ComboBox">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="20"/>
-                                </Grid.ColumnDefinitions>
-
-                                <Border x:Name="MainBorder" 
-                                        Grid.ColumnSpan="2" 
-                                        Background="{TemplateBinding Background}" 
-                                        BorderBrush="{TemplateBinding BorderBrush}" 
-                                        BorderThickness="{TemplateBinding BorderThickness}" 
-                                        CornerRadius="4"/>
-
-                                <Path x:Name="Arrow" 
-                                      Grid.Column="1" 
-                                      Data="M 0 0 L 4 4 L 8 0 Z" 
-                                      Fill="Gray" 
-                                      HorizontalAlignment="Center" 
-                                      VerticalAlignment="Center"/>
-
-                                <ToggleButton x:Name="ToggleButton" 
-                                              Grid.ColumnSpan="2" 
-                                              Background="Transparent" 
-                                              BorderBrush="Transparent" 
-                                              IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"/>
-
-                                <ContentPresenter x:Name="ContentSite" 
-                                                  IsHitTestVisible="False" 
-                                                  Content="{TemplateBinding SelectionBoxItem}" 
-                                                  ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" 
-                                                  ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" 
-                                                  Margin="6,2,20,2" 
-                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}" 
-                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
-
-                                <Popup x:Name="PART_Popup" 
-                                       AllowsTransparency="true" 
-                                       IsOpen="{TemplateBinding IsDropDownOpen}" 
-                                       Placement="Bottom" 
-                                       PopupAnimation="Slide">
-                                    <Border x:Name="DropDownBorder" 
-                                            Background="{TemplateBinding Background}" 
-                                            BorderBrush="LightGray" 
-                                            BorderThickness="1" 
-                                            MaxHeight="{TemplateBinding MaxDropDownHeight}" 
-                                            MinWidth="{TemplateBinding ActualWidth}">
-                                        <ScrollViewer x:Name="DropDownScrollViewer">
-                                            <ItemsPresenter x:Name="ItemsPresenter"/>
-                                        </ScrollViewer>
-                                    </Border>
-                                </Popup>
-                            </Grid>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="MainBorder" Property="Background" Value="AliceBlue"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
-        </Grid.Resources>
-
-
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <Grid Grid.Column="0" Background="#377448">
-                <Rectangle
-                    Fill="#377448" 
-                    RadiusX="70"
-                    RadiusY="70" Height="752" 
-                    VerticalAlignment="Top" 
-                    Margin="0,0,678,0"
-        />
-                <Image 
-                    Stretch="UniformToFill"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Source="/IMG/otter.png"
-                    Margin="-50,50,-20,50"/>
-            </Grid>
-
-            <Grid Grid.Column="1">
-                <Button
-                    FontStyle="Oblique"
-                    Foreground="#377448"
-                    Background="White"
-                    HorizontalAlignment="Left" 
-                    Margin="500,395,133,350" 
-                    FontSize="15"
-                    VerticalAlignment="Top" 
-                    Panel.ZIndex="2"
-                    BorderBrush="White">
-                    <TextBlock x:Name="btnForgotPassword"
-                        Text="Esqueceu a senha?"
-                        TextDecorations="Underline"/>
-                </Button>
-                <Button
-                    FontStyle="Oblique"
-                    Foreground="#377448"
-                    Background="White"
-                    HorizontalAlignment="Center" 
-                    Margin="0,700,0,0" 
-                    FontSize="15"
-                    VerticalAlignment="Top" 
-                    Panel.ZIndex="2"
-                    BorderBrush="White">
-                    <TextBlock
-                        Text="Precisa de Ajuda?"
-                        TextDecorations="Underline"/>
-                </Button>
-
-
-                <TextBlock
-                    Text="Iniciar Sessão" 
-                    FontFamily="./Fonts/#DM Sans" 
-                    FontSize="30"
-                    FontWeight="Bold"
-                    Foreground="Black"
-                    HorizontalAlignment="Center"
-                    Panel.ZIndex="2"
-                    Margin="0,160,0,570"/>
-
-                <Rectangle 
-                    HorizontalAlignment="Left" 
-                    Fill="White" 
-                    Width="678" 
-                    RadiusX="70"
-                    RadiusY="70" 
-                    Margin="0,0,0,0"
-                    Panel.ZIndex="1"/>
-
-                <Image 
-                    Stretch="Uniform"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Source="/IMG/mottainai.png"
-                    Margin="340,-300,320,340"
-                    Panel.ZIndex="1"/>
-                <Border 
-                    BorderBrush="#377448" 
-                    BorderThickness="0,0,0,2" 
-                    Height="35" 
-                    HorizontalAlignment="Stretch" 
-                    VerticalAlignment="Top" 
-                    Margin="140,355,140,0"
-                    Grid.Column="0"
-                    Panel.ZIndex="1">
-                    <Grid>
-                        <PasswordBox x:Name="txtPasswordClose"
-                            Background="Transparent" 
-                            BorderThickness="0" 
-                            VerticalContentAlignment="Center"
-                            Padding="0" 
-                            FontSize="20"
-                            PasswordChanged="txtPasswordClose_PasswordChanged"/>
-                        <TextBox x:Name="txtPasswordOpen"
-                            Background="Transparent"
-                            BorderBrush="Transparent"
-                            Padding="0" 
-                            FontSize="20"
-                            Visibility="Collapsed"
-/>
-
-                        <Button
-                            Margin="450,0,0,0"
-                            Background="Transparent"
-                            BorderBrush="Transparent"
-                            HorizontalContentAlignment="Right"
-                            Panel.ZIndex="2"
-                            Click="TogglePassword_Click">
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
-                                <Image x:Name="imgEye"
-                                    Source="/IMG/eyeClose.png" Width="30"/>
-                            </StackPanel>
-                        </Button>
-                        <Button 
-                            FontSize="20"
-                            Margin="450,0,0,0"
-                            Background="Transparent"
-                            BorderBrush="Transparent"
-                            HorizontalContentAlignment="Right" 
-                            Click="TogglePassword_Click"/>
-                    </Grid>
-                </Border>
-
-                <Border 
-                    BorderBrush="#377448" 
-                    BorderThickness="0,0,0,2" 
-                    Height="35" 
-                    HorizontalAlignment="Stretch" 
-                    VerticalAlignment="Top" 
-                    Margin="140,275,140,0"
-                    Grid.Column="0"
-                    Panel.ZIndex="2">
-                    <TextBox x:Name="txtEmail"
-                        Background="Transparent" 
-                        BorderThickness="0" 
-                        VerticalContentAlignment="Center"
-                        Padding="0" 
-                        FontSize="20"
-                        TextChanged="txtEmail_TextChanged"/>
-                </Border>
-
-                <TextBlock
-                    Text="E-mail do usuário" 
-                    FontFamily="./Fonts/#DM Sans" 
-                    FontSize="15"
-                    FontWeight="Regular"
-                    HorizontalAlignment="Left" 
-                    VerticalAlignment="Top"
-                    Margin="140,250,0,0"
-                    Panel.ZIndex="1"
-                    Foreground="#38423c"/>
-
-                <TextBlock
-                    Text="Unidade do terminal" 
-                    FontFamily="./Fonts/#DM Sans" 
-                    FontSize="15"
-                    FontWeight="Regular"
-                    HorizontalAlignment="Left" 
-                    VerticalAlignment="Top"
-                    Margin="140,510,0,0"
-                    Panel.ZIndex="1"
-                    Foreground="#38423c"/>
-
-                <TextBlock
-                    Text="Unidade da loja" 
-                    FontFamily="./Fonts/#DM Sans" 
-                    FontSize="15"
-                    FontWeight="Regular"
-                    HorizontalAlignment="Left" 
-                    VerticalAlignment="Top"
-                    Margin="140,440,0,0"
-                    Panel.ZIndex="1"
-                    Foreground="#38423c"/>
-
-                <TextBlock 
-                    Text="Senha" 
-                    FontFamily="./Fonts/#DM Sans" 
-                    FontSize="15"
-                    FontWeight="Regular"
-                    HorizontalAlignment="Left" 
-                    VerticalAlignment="Top"
-                    Margin="140,330,0,0"
-                    Panel.ZIndex="1"
-                    Foreground="#38423c"/>
-                <Border 
-                    CornerRadius="15" 
-                    Background="#377448" 
-                    HorizontalAlignment="Center" 
-                    VerticalAlignment="Center" 
-                    Margin="170,500,170,00"
-                    Panel.ZIndex="1">
-                    <Button
-                        Background="Transparent" 
-                        Foreground="White" 
-                        BorderThickness="0"
-                        Padding="150,10"
-                        Cursor="Hand" 
-                        Click="LogIn_Click">
-                        <TextBlock 
-                            Text="Iniciar"
-                            FontWeight="Bold"
-                            Foreground="White"
-                            FontSize="20"/>
-                    </Button>
-                </Border>
-                <TextBlock x:Name="txtMsg"
-                    Foreground="Red"
-                    Panel.ZIndex="1"
-                    Margin="-340,395,0,0"
-                    FontSize="14"
-                    FontWeight="Bold"
-                    HorizontalAlignment="Center"
-                    Visibility="Collapsed"/>
-                <ListBox d:ItemsSource="{d:SampleData ItemCount=5}"/>
-
-                <Border
-                    BorderBrush="#377448" 
-                    BorderThickness="0,0,0,2" 
-                    HorizontalAlignment="Left" 
-                    VerticalAlignment="Top" 
-                    Margin="140,465,100,0"
-                    Grid.Column="0"
-                    Panel.ZIndex="1"
-                    Background="Transparent"
-                    >
-                    <ComboBox x:Name="store"
-                        DisplayMemberPath="Name"
-                        SelectedValuePath="StoreId"
-                        Background="White"
-                        Foreground="Black"
-                        FontSize="20"
-                        SelectionChanged="loja_SelectionChanged"
-                        Width="493"/>
-                </Border>
-                <Border 
-                    BorderBrush="#377448" 
-                    BorderThickness="0,0,0,2" 
-                    HorizontalAlignment="Left" 
-                    VerticalAlignment="Top" 
-                    Margin="140,535,100,0"
-                    Grid.Column="0"
-                    Panel.ZIndex="1"
-                    Background="Transparent"
-    >
-                    <ComboBox x:Name="terminal"
-                        DisplayMemberPath="Name"
-                        SelectedValuePath="StoreId"
-                        Background="White"
-                        Foreground="Black"
-                        FontSize="20"
-                        Width="493"/>
-                </Border>
-
-            </Grid>
+        <Grid Grid.Column="0" 
+              Margin="40">
+            <Image Source="/IMG/otter.png" 
+                   Stretch="Uniform" 
+                   HorizontalAlignment="Center" 
+                   VerticalAlignment="Center"/>
         </Grid>
+
+        <Border Grid.Column="1" 
+                Background="White" 
+                CornerRadius="70,0,0,70">
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto" 
+                          HorizontalScrollBarVisibility="Disabled">
+
+                <StackPanel MaxWidth="450" 
+                            VerticalAlignment="Center" 
+                            Margin="40">
+
+                    <Image Source="/IMG/mottainai.png" 
+                           Stretch="Uniform" 
+                           MaxHeight="120" 
+                           Margin="0,0,0,20"/>
+
+                    <TextBlock Text="Iniciar Sessão" 
+                               FontFamily="./Fonts/#DM Sans" 
+                               FontSize="30" 
+                               FontWeight="Bold" 
+                               Foreground="Black" 
+                               HorizontalAlignment="Center" 
+                               Margin="0,0,0,30"/>
+
+                    <TextBlock x:Name="txtMsg" 
+                               Foreground="Red" 
+                               FontSize="14" 
+                               FontWeight="Bold" 
+                               HorizontalAlignment="Center" 
+                               Visibility="Collapsed" 
+                               Margin="0,0,0,10"/>
+
+                    <TextBlock Text="E-mail do usuário" 
+                               FontFamily="./Fonts/#DM Sans" 
+                               FontSize="15" Foreground="#38423c"
+                               Margin="0,0,0,5"/>
+                    <Border BorderBrush="#377448" 
+                            BorderThickness="0,0,0,2" 
+                            Margin="0,0,0,20">
+                        <TextBox x:Name="txtEmail" 
+                                 Background="Transparent" 
+                                 BorderThickness="0" 
+                                 FontSize="20" 
+                                 Padding="0,5"
+                                 TextChanged="txtEmail_TextChanged"/>
+                    </Border>
+
+
+                    <TextBlock Text="Senha" 
+                               FontFamily="./Fonts/#DM Sans" 
+                               FontSize="15" 
+                               Foreground="#38423c" 
+                               Margin="0,0,0,5"/>
+                    <Border BorderBrush="#377448" 
+                            BorderThickness="0,0,0,2" 
+                            Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <PasswordBox x:Name="txtPasswordClose" 
+                                         Grid.Column="0" 
+                                         Background="Transparent" 
+                                         BorderThickness="0" 
+                                         FontSize="20" 
+                                         Padding="0,5"
+                                         PasswordChanged="txtPasswordClose_PasswordChanged"/>
+
+                            <TextBox x:Name="txtPasswordOpen" 
+                                     Grid.Column="0" 
+                                     Background="Transparent" 
+                                     BorderThickness="0" 
+                                     FontSize="20" 
+                                     Padding="0,5" 
+                                     Visibility="Collapsed"/>
+
+
+                            <Button Grid.Column="1" 
+                                    Style="{StaticResource TransparentButton}" 
+                                    Click="TogglePassword_Click" 
+                                    Margin="5,0,0,0">
+                                <Image x:Name="imgEye" 
+                                       Source="/IMG/eyeCloseIcon.png" 
+                                       Width="30" Height="30" 
+                                       Stretch="Uniform"/>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+
+                    <Button Style="{StaticResource TransparentButton}" 
+                            HorizontalAlignment="Right" 
+                            Margin="0,0,0,20">
+                        <TextBlock x:Name="btnForgotPassword" 
+                                   Text="Esqueceu a senha?" 
+                                   TextDecorations="Underline" 
+                                   Foreground="#377448" 
+                                   FontStyle="Oblique" 
+                                   FontSize="14"/>
+                    </Button>
+
+
+                    <TextBlock Text="Unidade da loja" 
+                               FontFamily="./Fonts/#DM Sans" 
+                               FontSize="15" 
+                               Foreground="#38423c" 
+                               Margin="0,0,0,5"/>
+                    <ComboBox x:Name="store" 
+                              Style="{StaticResource FlatComboBoxStyle}" 
+                              DisplayMemberPath="Name" 
+                              SelectedValuePath="StoreId" 
+                              SelectionChanged="loja_SelectionChanged" 
+                              Margin="0,0,0,20"/>
+
+
+                    <TextBlock Text="Unidade do terminal" 
+                               FontFamily="./Fonts/#DM Sans" 
+                               FontSize="15" 
+                               Foreground="#38423c" 
+                               Margin="0,0,0,30"/>
+                    <ComboBox x:Name="terminal"
+                              Style="{StaticResource FlatComboBoxStyle}" 
+                              DisplayMemberPath="Name" 
+                              SelectedValuePath="StoreId" 
+                              Margin="0,0,0,40"/>
+
+                    <Button Background="#377448" 
+                            Foreground="White" 
+                            BorderThickness="0" 
+                            Cursor="Hand" 
+                            Click="LogIn_Click">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border CornerRadius="15" 
+                                        Background="{TemplateBinding Background}" 
+                                        Padding="0,15">
+                                    <TextBlock Text="Iniciar" 
+                                               FontWeight="Bold" 
+                                               Foreground="White" 
+                                               FontSize="20" 
+                                               HorizontalAlignment="Center"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <Button Style="{StaticResource TransparentButton}" 
+                            HorizontalAlignment="Center" 
+                            Margin="0,30,0,0">
+                        <TextBlock Text="Precisa de Ajuda?" 
+                                   TextDecorations="Underline" 
+                                   Foreground="#377448" 
+                                   FontStyle="Oblique" 
+                                   FontSize="15"/>
+                    </Button>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
     </Grid>
 </Page>
