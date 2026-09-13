@@ -33,49 +33,49 @@ namespace PDVMottainai.Views
             InitializeComponent(); 
 
 
-            //int numSale = 0;
-            //PopularSaleInformations(numSale, store, emailUser);
+            int numSale = 0;
+            TrendingSaleInformations(numSale, store, emailUser);
         }
 
-        //public void PopularSaleInformations(int numSale, string storeSelected, string emailUser)
-        //{
-        //    // Número da venda do turno
-        //    numSale += 1;
-        //    txtnumSale.Text = numSale.ToString();
+        public void TrendingSaleInformations(int numSale, string storeSelected, string emailUser)
+        {
+            // Número da venda do turno
+            numSale += 1;
+            txtNumSale.Text = numSale.ToString();
 
-        //    // Data e hora
-        //    ChangeDateTime();
+            // Data e hora
+            ChangeDateTime();
 
-        //    // Loja
-        //    txtStore.Text = storeSelected;
+            // Loja
+            txtStore.Text = "Loja: " + storeSelected;
 
-        //    // E-mail vendedor
-        //    var listEmployees = MockApiService.Employees;
+            // E-mail vendedor
+            //var listEmployees = MockApiService.Employees;
 
-        //    var employeeFound = listEmployees.FirstOrDefault(e => e.Email == emailUser);
+            //var employeeFound = listEmployees.FirstOrDefault(e => e.Email == emailUser);
 
-        //    if (employeeFound != null)
-        //    {
-        //        txtSeller.Text = employeeFound.Name;
-        //    }
+            //if (employeeFound != null)
+            //{
+            //    txtSeller.Text = employeeFound.Name;
+            //}
 
-        //}
-        //public void ChangeDateTime()
-        //{
-        //    // Inicializa o temporizador
-        //    _timer = new DispatcherTimer();
-        //    _timer.Interval = TimeSpan.FromSeconds(1); // Define o intervalo de 1 segundo
+        }
+        public void ChangeDateTime()
+        {
+            // Inicializa o temporizador
+            _timer = new DispatcherTimer();
+            _timer.Interval = TimeSpan.FromSeconds(1); // Define o intervalo de 1 segundo
 
-        //    // Associa o evento que roda a cada tique do relógio
-        //    _timer.Tick += (sender, e) =>
-        //    {
-        //        txtDateTime.Text = $"{DateTime.Now:dd/MM/yyyy} | {DateTime.Now:HH:mm:ss}";
-        //    };
+            // Associa o evento que roda a cada tique do relógio
+            _timer.Tick += (sender, e) =>
+            {
+                txtDateTime.Text = $"{DateTime.Now:dd/MM/yyyy} | {DateTime.Now:HH:mm:ss}";
+            };
 
-        //    // Dispara
-        //    _timer.Start();
-        //}
+            // Dispara
+            _timer.Start();
+        }
 
     }
 
-}
+    }
