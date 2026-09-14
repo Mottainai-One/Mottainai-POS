@@ -116,14 +116,14 @@ namespace PDVMottainai.Views
         {
             if (txtPasswordClose.Visibility == Visibility.Visible)
             {
-                imgEye.Source = new BitmapImage(new Uri("pack://application:,,,/IMG/eyeOpen.png"));
+                imgEye.Source = new BitmapImage(new Uri("pack://application:,,,/IMG/eyeOpenIcon.png"));
                 txtPasswordOpen.Text = txtPasswordClose.Password;
                 txtPasswordClose.Visibility = Visibility.Collapsed;
                 txtPasswordOpen.Visibility = Visibility.Visible;
             }
             else
             {
-                imgEye.Source = new BitmapImage(new Uri("pack://application:,,,/IMG/eyeClose.png"));
+                imgEye.Source = new BitmapImage(new Uri("pack://application:,,,/IMG/eyeCloseIcon.png"));
 
                 txtPasswordClose.Password = txtPasswordOpen.Text;
                 txtPasswordOpen.Visibility = Visibility.Collapsed;
