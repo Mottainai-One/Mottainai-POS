@@ -5,8 +5,41 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:local="clr-namespace:PDVMottainai.Views"
       mc:Ignorable="d"
-      Title="salePage" 
-      >
+      Title="salePage">
+
+    <Page.Resources>
+        <!-- Estilo para o Card (Borda com Sombra) -->
+        <Style x:Key="CardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Margin" Value="10,0"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect 
+                        Color="Black" 
+                        Direction="315" 
+                        ShadowDepth="0" 
+                        BlurRadius="5" 
+                        Opacity="0.3"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Estilo para os Títulos dentro dos Cards -->
+        <Style x:Key="CardTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Regular"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="#555555"/>
+        </Style>
+
+        <!-- Estilo para os Valores (Textos em Negrito) dentro dos Cards -->
+        <Style x:Key="CardValueStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="Margin" Value="0,2,0,0"/>
+        </Style>
+    </Page.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="1*"/>
@@ -15,19 +48,24 @@
             <RowDefinition Height="3*"/>
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" Background="#1B5B36">
+        <!-- HEADER -->
+        <Grid 
+            Grid.Row="0" 
+            Background="#1B5B36">
+
             <Image
                 Source="/IMG/mottainai.png"
                 HorizontalAlignment="Left"
                 Margin="20,7,0,7"/>
+
             <TextBlock x:Name="txtStore"
                 Margin="70,0,0,0"
                 FontSize="25"
                 VerticalAlignment="Center"
                 FontFamily="./Fonts/#DM Sans"
                 Foreground="White"
-                FontWeight="SemiBold"
-                />
+                FontWeight="SemiBold"/>
+
             <TextBlock x:Name="txtDateTime"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Right"
@@ -36,225 +74,192 @@
                 FontWeight="SemiBold"
                 Margin="0,0,30,0"/>
         </Grid>
-        <Grid Grid.Row="1" Background="#E8F7ED">
+
+        <!-- INFO CARDS (ROW 1) -->
+        <Grid 
+            Grid.Row="1" 
+            Background="#E8F7ED">
+
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="5*"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <Grid Grid.Row="1">
+            <!-- Grid que segura os 5 cards -->
+            <Grid 
+                Grid.Row="1" 
+                Margin="10,0">
+
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="6*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="8*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="8*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="8*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="7*"/>
-                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="1.2*"/>
+                    <ColumnDefinition Width="1.6*"/>
+                    <ColumnDefinition Width="1.6*"/>
+                    <ColumnDefinition Width="1.6*"/>
+                    <ColumnDefinition Width="1.4*"/>
                 </Grid.ColumnDefinitions>
-                
-                <Grid Grid.Column="2" Background="#E8F7ED"/>
-                <Grid Grid.Column="8" Background="#E8F7ED"/>
-                <Grid Grid.Column="4" Background="#E8F7ED"/>
-                <Grid Grid.Column="6" Background="#E8F7ED"/>
-                <Grid Grid.Column="10" Background="#E8F7ED"/>
 
-                <Grid Grid.Column="0" Background="#E8F7ED"/>
-                <Border Grid.Column="1" 
-                        CornerRadius="10" 
-                        Background="White"
-                        BorderBrush="LightGray"
-                        BorderThickness="0.5">
-                    <Border.Effect>
-                        <DropShadowEffect
-                            Color="Black" 
-                          Direction="315" 
-                          ShadowDepth="0" 
-                          BlurRadius="10" 
-                          Opacity="0.3"/>
-                    </Border.Effect>
+                <!-- CARD 1: N° Venda -->
+                <Border 
+                    Grid.Column="0" 
+                    Style="{StaticResource CardStyle}">
 
                     <Grid>
-                        <Image
-                            Source="/IMG/CartIcon.png"
-                            HorizontalAlignment="Left"
-                            Margin="20,10,0,10"
-                            VerticalAlignment="Center"
-                        />
-                        <TextBlock
-                            Text="N° venda"
-                            HorizontalAlignment="Right"
-                            Margin="0,12,60,0"
-                            FontWeight="Regular"
-                            FontSize="15"/>
-                        <TextBlock x:Name="txtNumSale"
-                            HorizontalAlignment="Left"
-                            Margin="95,35,0,0"
-                            FontWeight="Bold"
-                            FontSize="15"/>
-                    </Grid>
-                    
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-                </Border>
-                <Border Grid.Column="3" 
-                             CornerRadius="10" 
-                             Background="White"
-                             BorderBrush="LightGray"
-                             BorderThickness="0.5">
-                    <Border.Effect>
-                        <DropShadowEffect
-                                 Color="Black" 
-                               Direction="315" 
-                               ShadowDepth="0" 
-                               BlurRadius="10" 
-                               Opacity="0.3"/>
-                    </Border.Effect>
+                        <Image 
+                            Source="/IMG/CartIcon.png" 
+                            Margin="15,10,10,10" 
+                            VerticalAlignment="Center"/>
 
-                    <Grid>
-                        <Image
-                            Source="/IMG/documentIcon.png"
-                            HorizontalAlignment="Left"
-                            Margin="20,10,0,10"
-                            VerticalAlignment="Center"
-                        />
-                        <TextBlock
-                            Text="CPF do cliente"
-                            HorizontalAlignment="Left"
-                            Margin="90,12,0,0"
-                            FontWeight="Regular"
-                            FontSize="15"/>
-                        <TextBlock x:Name="txtNumSal"
-                                   Text="292.357.538-56"
-                            HorizontalAlignment="Left"
-                            Margin="95,35,0,0"
-                            FontWeight="Bold"
-                            FontSize="15"/>
+                        <StackPanel 
+                            Grid.Column="1" 
+                            VerticalAlignment="Center">
+
+                            <TextBlock 
+                                Text="N° venda" 
+                                Style="{StaticResource CardTitleStyle}"/>
+
+                            <TextBlock x:Name="txtNumSale" 
+                                Style="{StaticResource CardValueStyle}"/>
+                        </StackPanel>
                     </Grid>
                 </Border>
 
-                <Border Grid.Column="5"
-                             CornerRadius="10" 
-                             Background="White"
-                             BorderBrush="LightGray"
-                             BorderThickness="0.5">
-                    <Border.Effect>
-                        <DropShadowEffect
-                                 Color="Black" 
-                               Direction="315" 
-                               ShadowDepth="0" 
-                               BlurRadius="10" 
-                               Opacity="0.3"/>
-                    </Border.Effect>
+                <!-- CARD 2: CPF do Cliente -->
+                <Border 
+                    Grid.Column="1" 
+                    Style="{StaticResource CardStyle}">
+
                     <Grid>
-                        <Image
-                            Source="/IMG/userIcon.png"
-                            HorizontalAlignment="Left"
-                            Margin="20,10,0,10"
-                            VerticalAlignment="Center"
-                        />
-                        <TextBlock
-                            Text="Nome do cliente"
-                            HorizontalAlignment="Left"
-                            Margin="90,12,0,0"
-                            FontWeight="Regular"
-                            FontSize="15"/>
-                        <TextBlock x:Name="txtNumSa"
-                                   Text="Rebecca Paulucci"
-                            HorizontalAlignment="Left"
-                            Margin="95,35,0,0"
-                            FontWeight="Bold"
-                            FontSize="15"/>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Image 
+                            Source="/IMG/documentIcon.png" 
+                            Margin="15,10,10,10" 
+                            VerticalAlignment="Center"/>
+
+                        <StackPanel 
+                            Grid.Column="1" 
+                            VerticalAlignment="Center">
+
+                            <TextBlock 
+                                Text="CPF do cliente" 
+                                Style="{StaticResource CardTitleStyle}"/>
+
+                            <TextBlock x:Name="txtNumSal" 
+                                Text="292.357.538-56" 
+                                Style="{StaticResource CardValueStyle}"/>
+                        </StackPanel>
                     </Grid>
                 </Border>
 
-                <Border Grid.Column="7" 
-                             CornerRadius="10" 
-                             Background="White"
-                             BorderBrush="LightGray"
-                             BorderThickness="0.5">
-                    <Border.Effect>
-                        <DropShadowEffect
-                                 Color="Black" 
-                               Direction="315" 
-                               ShadowDepth="0" 
-                               BlurRadius="10" 
-                               Opacity="0.3"/>
-                    </Border.Effect>
+                <!-- CARD 3: Nome do Cliente -->
+                <Border 
+                    Grid.Column="2" 
+                    Style="{StaticResource CardStyle}">
 
                     <Grid>
-                        <Image
-                            Source="/IMG/podiumIcon.png"
-                            HorizontalAlignment="Left"
-                            Margin="20,10,0,10"
-                            VerticalAlignment="Center"
-                        />
-                        <TextBlock
-                            Text="Nível do cliente"
-                            HorizontalAlignment="Left"
-                            Margin="90,12,0,0"
-                            FontWeight="Regular"
-                            FontSize="15"/>
-                        <TextBlock x:Name="txtNumS"
-                            Text="Nível sustentável"
-                            HorizontalAlignment="Left"
-                            Margin="95,35,0,0"
-                            FontWeight="Bold"
-                            FontSize="15"/>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Image 
+                            Source="/IMG/userIcon.png" 
+                            Margin="15,10,10,10" 
+                            VerticalAlignment="Center"/>
+
+                        <StackPanel 
+                            Grid.Column="1" 
+                            VerticalAlignment="Center">
+
+                            <TextBlock 
+                                Text="Nome do cliente" 
+                                Style="{StaticResource CardTitleStyle}"/>
+
+                            <TextBlock x:Name="txtNumSa" 
+                                Text="Rebecca Paulucci" 
+                                Style="{StaticResource CardValueStyle}"/>
+                        </StackPanel>
                     </Grid>
                 </Border>
 
-                <Grid Grid.Column="9">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="7*"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
+                <!-- CARD 4: Nível do Cliente -->
+                <Border 
+                    Grid.Column="3" 
+                    Style="{StaticResource CardStyle}">
 
-                    <Grid Grid.Row="0" Background="#E8F7ED"/>
-                    <Grid Grid.Row="2" Background="#E8F7ED"/>
-                    <Border Grid.Row="1" 
-                            CornerRadius="10"
-                            Background="#B3F1C7"
-                            BorderBrush="#4B9B62"
-                            BorderThickness="1">
-                        <Border.Effect>
-                            <DropShadowEffect
-                                 Color="Black" 
-                               Direction="315" 
-                               ShadowDepth="0" 
-                               BlurRadius="10" 
-                               Opacity="0.3"/>
-                        </Border.Effect>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-                        <Grid>
-                            <Image
-                                Source="/IMG/inProgressIcon.png"
-                                HorizontalAlignment="Left"
-                                Margin="20,10,0,10"
-                                VerticalAlignment="Center"
-                            />
-                            <TextBlock x:Name="txtNum"
-                                Text="Venda em andamento"
-                                HorizontalAlignment="Left"
-                                Margin="70,0,0,0"
-                                FontWeight="Bold"
-                                FontSize="15"
-                                VerticalAlignment="Center"/>
-                        </Grid>
-                    </Border>
-                    
-                </Grid>
-                
+                        <Image 
+                            Source="/IMG/podiumIcon.png" 
+                            Margin="15,10,10,10" 
+                            VerticalAlignment="Center"/>
+
+                        <StackPanel 
+                            Grid.Column="1" 
+                            VerticalAlignment="Center">
+
+                            <TextBlock 
+                                Text="Nível do cliente" 
+                                Style="{StaticResource CardTitleStyle}"/>
+
+                            <TextBlock x:Name="txtNumS" 
+                                Text="Nível sustentável" 
+                                Style="{StaticResource CardValueStyle}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- CARD 5: Status da Venda -->
+                <Border 
+                    Grid.Column="4" 
+                    Style="{StaticResource CardStyle}"
+                    Background="#C7F7D7">
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Image 
+                            Source="/IMG/inProgressIcon.png" 
+                            Margin="15,12,10,12" 
+                            VerticalAlignment="Center"/>
+
+                        <TextBlock x:Name="txtNum" 
+                            Grid.Column="1" 
+                            Text="Venda em andamento" 
+                            TextWrapping="Wrap" 
+                            VerticalAlignment="Center" 
+                            Style="{StaticResource CardValueStyle}"/>
+                    </Grid>
+                </Border>
+
             </Grid>
-            
         </Grid>
-        <Grid Grid.Row="2" Background="#E8F7ED"/>
-        <Grid Grid.Row="3" Background="DarkGoldenrod"/>
+
+        <!-- BODY -->
+        <Grid 
+            Grid.Row="2" 
+            Background="#E8F7ED"/>
+
+        <!-- FOOTER -->
+        <Grid 
+            Grid.Row="3" 
+            Background="DarkGoldenrod"/>
 
     </Grid>
 </Page>
