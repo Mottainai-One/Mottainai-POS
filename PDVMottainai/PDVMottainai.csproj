@@ -9,26 +9,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="IMG\documentIcon.png" />
-    <None Remove="IMG\inProgressIcon.png" />
+    <None Remove="IMG\eyeClose.png" />
+    <None Remove="IMG\eyeOpen.png" />
     <None Remove="IMG\mottainai.png" />
-    <None Remove="IMG\podiumIcon.png" />
-    <None Remove="IMG\userIcon.png" />
+    <None Remove="IMG\supermercado.png" />
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="IMG\cartIcon.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="IMG\documentIcon.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="IMG\eyeCloseIcon.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="IMG\eyeOpenIcon.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
     <Resource Include="IMG\inProgressIcon.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
@@ -36,12 +23,6 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
     <Resource Include="IMG\mottainai.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="IMG\podiumIcon.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="IMG\userIcon.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
   </ItemGroup>

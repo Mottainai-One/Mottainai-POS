@@ -12,6 +12,9 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using PDVMottainai.Services;
+using PDVMottainai.Models;
+
 
 namespace PDVMottainai.Views
 {
@@ -26,13 +29,14 @@ namespace PDVMottainai.Views
         {
             
             InitializeComponent();
+           
             
         }
         public salePage(string store, string emailUser)
         {
-            InitializeComponent(); 
+            InitializeComponent();
 
-
+            bool inicializeSale = true;
             int numSale = 0;
             TrendingSaleInformations(numSale, store, emailUser);
         }
@@ -64,18 +68,44 @@ namespace PDVMottainai.Views
         {
             // Inicializa o temporizador
             _timer = new DispatcherTimer();
-            _timer.Interval = TimeSpan.FromSeconds(1); // Define o intervalo de 1 segundo
+            _timer.Interval = TimeSpan.FromSeconds(1);
+        }// Define o intervalo de 1 segundo
 
-            // Associa o evento que roda a cada tique do relógio
-            _timer.Tick += (sender, e) =>
+        //}
+        //public void ChangeDateTime()
+        //{
+        //    // Inicializa o temporizador
+        //    _timer = new DispatcherTimer();
+        //    _timer.Interval = TimeSpan.FromSeconds(1); // Define o intervalo de 1 segundo
+
+        //    // Associa o evento que roda a cada tique do relógio
+        //    _timer.Tick += (sender, e) =>
+        //    {
+        //        txtDateTime.Text = $"{DateTime.Now:dd/MM/yyyy} | {DateTime.Now:HH:mm:ss}";
+        //    };
+
+        private void formBarcode_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (formBarcode.Text.Length == 13)
             {
-                txtDateTime.Text = $"{DateTime.Now:dd/MM/yyyy} | {DateTime.Now:HH:mm:ss}";
-            };
-
-            // Dispara
-            _timer.Start();
+                var lisProducts = MockApiService.Products;
+                var productFound = lisProducts.FirstOrDefault(e => e.Barcode == formBarcode.Text);
+                if (productFound != null)
+                {
+                    txtProductName.Text = productFound.Name;
+                    txtBarCode.Text = productFound.Barcode;
+                    txtSkuProduct.Text = productFound.Sku;
+                }
+                else
+                {
+                    txtProductName.Text = "-";
+                    txtBarCode.Text = "-";
+                    txtSkuProduct.Text = "-";
+                    MessageBox.Show("Código de barras rsrs");
+                }
+                
+            }
         }
-
     }
 
     }
