@@ -70,15 +70,18 @@ namespace PDVMottainai.Views
             _timer = new DispatcherTimer();
             _timer.Interval = TimeSpan.FromSeconds(1); // Define o intervalo de 1 segundo
 
-            // Associa o evento que roda a cada tique do relógio
-            _timer.Tick += (sender, e) =>
-            {
-                txtDateTime.Text = $"{DateTime.Now:dd/MM/yyyy} | {DateTime.Now:HH:mm:ss}";
-            };
+        //}
+        //public void ChangeDateTime()
+        //{
+        //    // Inicializa o temporizador
+        //    _timer = new DispatcherTimer();
+        //    _timer.Interval = TimeSpan.FromSeconds(1); // Define o intervalo de 1 segundo
 
-            // Dispara
-            _timer.Start();
-        }
+        //    // Associa o evento que roda a cada tique do relógio
+        //    _timer.Tick += (sender, e) =>
+        //    {
+        //        txtDateTime.Text = $"{DateTime.Now:dd/MM/yyyy} | {DateTime.Now:HH:mm:ss}";
+        //    };
 
         private void formBarcode_TextChanged(object sender, TextChangedEventArgs e)
         {
