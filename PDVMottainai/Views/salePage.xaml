@@ -349,12 +349,15 @@
                                                 BorderThickness="1"
                                                 Margin="10,2,5,5"
                                                 CornerRadius="10">
-                                            <TextBox Background="White"
+                                            <TextBox x:Name="formBarcode"
+                                                Background="White"
                                                      Style="{StaticResource CleanTextBoxStyle}"
                                                      BorderBrush="Transparent"
                                                      FontSize="20"
                                                      VerticalAlignment="Center"
                                                      Margin="10,0,10,0"
+                                                     TextChanged="formBarcode_TextChanged"
+                                                     MaxLength="13"
                                                      />
                                         </Border>
                                         <Border Grid.Column="1" 
@@ -376,8 +379,84 @@
                                     </Grid>
                                     
                                 </Grid>
-                                <Grid Grid.Row="1" Background="Blue"/>
-                                <Grid Grid.Row="2" Background="Black"/>
+                                <Border Grid.Row="1" Background="#E8F7ED"
+                                      Margin="10,5,10,0"
+                                        CornerRadius="10">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="*"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+                                        <Grid Grid.Row="0">
+                                            <TextBlock x:Name="txtProductName"
+                                            Text="-"
+                                            Margin="7,10,0,0"
+                                            FontSize="18"
+                                            FontWeight="Bold"
+                                            Foreground="#1B5B36"/>
+                                        </Grid>
+
+                                        <Grid Grid.Row="1">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <Grid Grid.Column="0">
+                                                <TextBlock
+                                                    Text="Código de barras (F3)"
+                                                    Margin="10,0,0,0"
+                                                    FontSize="11"
+                                                    FontWeight="Regular"
+                                                    Foreground="Gray"/>
+                                                <TextBlock x:Name="txtBarCode"
+                                                    Text="-"
+                                                    VerticalAlignment="Bottom"
+                                                    Margin="10,0,10,10"
+                                                    FontSize="13"
+                                                    FontWeight="Medium"
+                                                    Foreground="#1B5B36"/>
+                                                <Button Margin="120,12,160,10"
+                                                        Style="{StaticResource TransparentButton}"
+                                                        Background="Transparent"
+                                                        BorderBrush="Transparent">
+                                                        <Image Source="/IMG/copyIcon.png"
+                                                               HorizontalAlignment="Right"
+                                                               Margin="2,2,2,2"
+                                                       />
+                                                </Button>
+
+                                            </Grid>
+
+                                            <Grid Grid.Column="1">
+                                                <TextBlock
+                                                    Text="SKU do produto"
+                                                    Margin="0,0,0,0"
+                                                    FontSize="11"
+                                                    FontWeight="Regular"
+                                                    Foreground="Gray"/>
+                                                <TextBlock x:Name="txtSkuProduct"
+                                                    Text="-"
+                                                    VerticalAlignment="Bottom"
+                                                    Margin="0,0,10,10"
+                                                    FontSize="13"
+                                                    FontWeight="Medium"
+                                                    Foreground="#1B5B36"/>
+                                                <Button Margin="120,12,160,10"
+                                                        Style="{StaticResource TransparentButton}"
+                                                        Background="Transparent"
+                                                        BorderBrush="Transparent">
+                                                        <Image Source="/IMG/copyIcon.png"
+                                                               HorizontalAlignment="Right"
+                                                               Margin="2,2,2,2"
+                                                       />
+                                                </Button>
+                                            </Grid>
+                                        </Grid>
+                                    </Grid>
+                                    
+                                </Border>
+                                <Grid Grid.Row="2" Background="White"/>
                                 <Grid Grid.Row="3" Background="Blue"/>
                                 <Grid Grid.Row="4" Background="Black"/>
                             </Grid>

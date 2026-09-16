@@ -12,6 +12,9 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using PDVMottainai.Services;
+using PDVMottainai.Models;
+
 
 namespace PDVMottainai.Views
 {
@@ -26,13 +29,14 @@ namespace PDVMottainai.Views
         {
             
             InitializeComponent();
+           
             
         }
         public salePage(string store, string emailUser)
         {
-            InitializeComponent(); 
+            InitializeComponent();
 
-
+            bool inicializeSale = true;
             int numSale = 0;
             TrendingSaleInformations(numSale, store, emailUser);
         }
@@ -76,6 +80,28 @@ namespace PDVMottainai.Views
             _timer.Start();
         }
 
+        private void formBarcode_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (formBarcode.Text.Length == 13)
+            {
+                var lisProducts = MockApiService.Products;
+                var productFound = lisProducts.FirstOrDefault(e => e.Barcode == formBarcode.Text);
+                if (productFound != null)
+                {
+                    txtProductName.Text = productFound.Name;
+                    txtBarCode.Text = productFound.Barcode;
+                    txtSkuProduct.Text = productFound.Sku;
+                }
+                else
+                {
+                    txtProductName.Text = "-";
+                    txtBarCode.Text = "-";
+                    txtSkuProduct.Text = "-";
+                    MessageBox.Show("Código de barras rsrs");
+                }
+                
+            }
+        }
     }
 
     }

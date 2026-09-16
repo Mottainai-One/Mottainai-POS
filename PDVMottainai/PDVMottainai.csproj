@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="IMG\copyIcon.png" />
     <None Remove="IMG\documentIcon.png" />
     <None Remove="IMG\inProgressIcon.png" />
     <None Remove="IMG\mottainai.png" />
@@ -19,6 +20,9 @@
 
   <ItemGroup>
     <Resource Include="IMG\cartIcon.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="IMG\copyIcon.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
     <Resource Include="IMG\documentIcon.png">
