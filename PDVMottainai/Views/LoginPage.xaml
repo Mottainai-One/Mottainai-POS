@@ -91,68 +91,6 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-        <Border Grid.Column="1" 
-                Background="White" 
-                CornerRadius="70,0,0,70">
-
-            <ScrollViewer VerticalScrollBarVisibility="Auto" 
-                          HorizontalScrollBarVisibility="Disabled">
-
-                <StackPanel MaxWidth="450" 
-                            VerticalAlignment="Center" 
-                            Margin="40">
-
-                    <Image Source="/IMG/mottainai.png" 
-                           Stretch="Uniform" 
-                           MaxHeight="120" 
-                           Margin="0,0,0,20"/>
-
-                    <TextBlock Text="Iniciar Sessão" 
-                               FontFamily="./Fonts/#DM Sans" 
-                               FontSize="30" 
-                               FontWeight="Bold" 
-                               Foreground="Black" 
-                               HorizontalAlignment="Center" 
-                               Margin="0,0,0,30"/>
-
-                    <TextBlock x:Name="txtMsg" 
-                               Foreground="Red" 
-                               FontSize="14" 
-                               FontWeight="Bold" 
-                               HorizontalAlignment="Center" 
-                               Visibility="Collapsed" 
-                               Margin="0,0,0,10"/>
-
-                    <TextBlock Text="E-mail do usuário" 
-                               FontFamily="./Fonts/#DM Sans" 
-                               FontSize="15" Foreground="#38423c"
-                               Margin="0,0,0,5"/>
-                    <Border BorderBrush="#377448" 
-                            BorderThickness="0,0,0,2" 
-                            Margin="0,0,0,20">
-                        <TextBox x:Name="txtEmail" 
-                                 Background="Transparent" 
-                                 BorderThickness="0" 
-                                 FontSize="20" 
-                                 Padding="0,5"
-                                 TextChanged="txtEmail_TextChanged"/>
-                    </Border>
-
-
-                    <TextBlock Text="Senha" 
-                               FontFamily="./Fonts/#DM Sans" 
-                               FontSize="15" 
-                               Foreground="#38423c" 
-                               Margin="0,0,0,5"/>
-                    <Border BorderBrush="#377448" 
-                            BorderThickness="0,0,0,2" 
-                            Margin="0,0,0,10">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-
                             <PasswordBox x:Name="txtPasswordClose" 
                                          Grid.Column="0" 
                                          Background="Transparent" 
@@ -169,7 +107,6 @@
                                      Padding="0,5" 
                                      Visibility="Collapsed"/>
 
-
                             <Button Grid.Column="1" 
                                     Style="{StaticResource TransparentButton}" 
                                     Click="TogglePassword_Click" 
@@ -182,7 +119,7 @@
                         </Grid>
                     </Border>
 
-
+                    <!-- Esqueceu a senha -->
                     <Button Style="{StaticResource TransparentButton}" 
                             HorizontalAlignment="Right" 
                             Margin="0,0,0,20">
@@ -195,6 +132,7 @@
                     </Button>
 
 
+                    <!-- Input: Unidade da loja -->
                     <TextBlock Text="Unidade da loja" 
                                FontFamily="./Fonts/#DM Sans" 
                                FontSize="15" 
@@ -208,21 +146,18 @@
                               Margin="0,0,0,20"/>
 
                     <!-- Input: Unidade do Terminal -->
-                    <TextBlock Text="Unidade do terminal" FontFamily="./Fonts/#DM Sans" FontSize="15" Foreground="#38423c" Margin="0,0,0,30"/>
-                    <ComboBox x:Name="terminal" Style="{StaticResource FlatComboBoxStyle}" 
-                              DisplayMemberPath="Name" SelectedValuePath="StoreId" Margin="0,0,0,40"/>
-
                     <TextBlock Text="Unidade do terminal" 
                                FontFamily="./Fonts/#DM Sans" 
                                FontSize="15" 
                                Foreground="#38423c" 
-                               Margin="0,0,0,30"/>
-                    <ComboBox x:Name="terminal"
+                               Margin="0,0,0,5"/>
+                    <ComboBox x:Name="terminal" 
                               Style="{StaticResource FlatComboBoxStyle}" 
                               DisplayMemberPath="Name" 
                               SelectedValuePath="StoreId" 
                               Margin="0,0,0,40"/>
 
+                    <!-- Botão Iniciar -->
                     <Button Background="#377448" 
                             Foreground="White" 
                             BorderThickness="0" 
@@ -243,6 +178,7 @@
                         </Button.Template>
                     </Button>
 
+                    <!-- Ajuda -->
                     <Button Style="{StaticResource TransparentButton}" 
                             HorizontalAlignment="Center" 
                             Margin="0,30,0,0">

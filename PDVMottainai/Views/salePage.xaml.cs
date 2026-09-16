@@ -68,7 +68,8 @@ namespace PDVMottainai.Views
         {
             // Inicializa o temporizador
             _timer = new DispatcherTimer();
-            _timer.Interval = TimeSpan.FromSeconds(1); // Define o intervalo de 1 segundo
+            _timer.Interval = TimeSpan.FromSeconds(1);
+        }// Define o intervalo de 1 segundo
 
         //}
         //public void ChangeDateTime()
