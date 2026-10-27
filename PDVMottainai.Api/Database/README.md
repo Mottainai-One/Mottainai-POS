@@ -1,0 +1,7 @@
+# Banco do PDV
+
+O PDV usa somente `mottainai_operational` para operações. O banco analítico não recebe comandos da API. Configure `ConnectionStrings__Operational` fora do repositório e use o papel `mottainai_api` conforme os scripts oficiais do banco. Cada operação autenticada precisa iniciar transação, executar `SET LOCAL ROLE mottainai_api` e chamar `mottainai.fn_bootstrap_staff_context(uid, 'FIREBASE_UID')`; não defina GUCs de tenant diretamente.
+
+As migrations do PostgreSQL pertencem ao repositório [Mottainai-Banco-Operacional](https://github.com/Mottainai-One/Mottainai-Banco-Operacional), que é a fonte versionada do schema operacional. Em uma instalação existente, aplique primeiro `database/operational/update_existing_api_rpa.sql` e depois `database/operational/update_existing_pos_api.sql`, conforme o README desse repositório. Não execute esses scripts no banco analítico. Este projeto contém somente o schema SQLite local em `Database/Local/001_local_state.sql`, inicializado automaticamente; ele guarda cache, sessão, turno local, rascunhos e outbox protegidos no terminal. As migrations do PostgreSQL não são executadas pela API.
+
+O estado offline reside em SQLite em `%LOCALAPPDATA%\Mottainai\PDV\pos-local.db`, com chaves do ASP.NET Data Protection protegidas por DPAPI no perfil do usuário do Windows. Não copie o banco/chaves para outro terminal. Backups devem preservar a proteção e a identidade do mesmo usuário Windows.
