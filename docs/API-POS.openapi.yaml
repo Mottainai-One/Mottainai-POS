@@ -1,0 +1,60 @@
+openapi: 3.1.0
+info:
+  title: Mottainai POS API
+  version: 1.0.0
+  description: Contrato estático. Operações locais offline usam cache/outbox; login, preparo do grant e fechamento requerem online. Escritas de turno, caixa e carrinho exigem idempotencyKey UUID no corpo.
+servers:
+  - url: http://127.0.0.1:5097
+security:
+  - bearerAuth: []
+paths:
+  /auth/login:
+    post: { security: [], summary: Entrar online como operador, responses: { '200': { description: Sessão iniciada }, '503': { description: Serviço online indisponível } } }
+  /auth/refresh:
+    post: { security: [], summary: Renovar sessão local, responses: { '200': { description: Sessão renovada }, '401': { description: Sessão inválida } } }
+  /auth/logout:
+    post: { summary: Sair da conta, responses: { '204': { description: Sessão revogada } } }
+  /auth/me:
+    get: { summary: Consultar operador e permissões, responses: { '200': { description: Operador atual } } }
+  /auth/offline-login:
+    post: { security: [], summary: Entrar com autorização offline prévia, responses: { '200': { description: Sessão local }, '401': { description: Grant inválido, expirado ou de outro terminal } } }
+  /offline-sessions:
+    post: { summary: Preparar autorização offline online, responses: { '200': { description: Grant preparado }, '503': { description: Requer conexão online } } }
+  /terminals:
+    get: { summary: Listar terminais autorizados, responses: { '200': { description: Terminais em cache } } }
+  /capabilities:
+    get: { summary: Consultar recursos disponíveis, responses: { '200': { description: Capacidades do PDV } } }
+  /products:
+    get: { summary: Buscar produtos, parameters: [{ in: query, name: query, schema: { type: string } }, { in: query, name: limit, schema: { type: integer } }], responses: { '200': { description: Online pode incluir promoção vigente; offline retorna somente preço normal } } }
+  /products/{productId}:
+    get: { summary: Consultar produto, parameters: [{ in: path, name: productId, required: true, schema: { type: integer } }], responses: { '200': { description: Promoção vigente online; apenas preço normal offline }, '404': { description: Não encontrado } } }
+  /customers/search:
+    post: { summary: Buscar cliente pela identidade tokenizada da conta, responses: { '200': { description: Cliente em cache }, '404': { description: Não encontrado no cache } } }
+  /shifts:
+    post: { summary: Iniciar turno local ou online, responses: { '201': { description: Turno iniciado }, '409': { description: Já existe turno aberto } } }
+  /shifts/current:
+    get: { summary: Consultar turno aberto, responses: { '200': { description: Turno atual }, '204': { description: Sem turno aberto } } }
+  /shifts/{shiftId}:
+    get: { summary: Consultar turno, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Turno }, '404': { description: Não encontrado } } }
+  /shifts/{shiftId}/summary:
+    get: { summary: Consultar saldo e resumo, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Resumo local } } }
+  /shifts/{shiftId}/closing:
+    post: { summary: Finalizar turno online, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Turno fechado }, '503': { description: Requer conexão; turno segue aberto } } }
+  /shifts/{shiftId}/cash-movements:
+    get: { summary: Listar movimentações, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Movimentações locais } } }
+  /shifts/{shiftId}/cash-withdrawals:
+    post: { summary: Registrar sangria, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '202': { description: Enfileirado para sincronização } } }
+  /shifts/{shiftId}/cash-deposits:
+    post: { summary: Registrar suprimento, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '202': { description: Enfileirado para sincronização } } }
+  /sales:
+    get: { summary: Consultar vendas e rascunhos locais, responses: { '200': { description: Vendas em cache } } }
+    post: { summary: Iniciar venda em rascunho, responses: { '201': { description: Rascunho criado }, '409': { description: Turno aberto obrigatório } } }
+  /sales/{saleId}:
+    get: { summary: Consultar venda ou carrinho, parameters: [{ in: path, name: saleId, required: true, schema: { type: integer } }], responses: { '200': { description: Venda e itens }, '404': { description: Não encontrada } } }
+  /sales/{saleId}/items:
+    post: { summary: Adicionar produto ao rascunho pelo preço normal, parameters: [{ in: path, name: saleId, required: true, schema: { type: integer } }], responses: { '202': { description: Item enfileirado }, '404': { description: Produto fora do cache } } }
+  /sales/{saleId}/items/{itemId}:
+    patch: { summary: Alterar quantidade do item, parameters: [{ in: path, name: saleId, required: true, schema: { type: integer } }, { in: path, name: itemId, required: true, schema: { type: integer } }], responses: { '202': { description: Alteração enfileirada }, '404': { description: Item não encontrado } } }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer }
