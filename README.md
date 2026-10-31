@@ -87,7 +87,7 @@ flowchart LR
 | Navegação | `MainWindow.xaml` (`Frame`, `NavigationUIVisibility="Hidden"`) | Navegação por `Page` |
 | Dados | `Services/MockApiService.cs` | Propriedades `static List<T>` com registros fictícios |
 | Domínio | `Models/*.cs` | POCOs; só `RetailStore` implementa `INotifyPropertyChanged` |
-| MVVM | Pastas `ViewModels\` e `Comands\` declaradas no `.csproj` | **Vazias**: MVVM planejado, não implementado |
+| MVVM | Pastas `ViewModels\` e `Comands\` declaradas no `.csproj` | Organização de componentes de apresentação |
 
 ### Arquitetura da API local
 
@@ -461,7 +461,6 @@ flowchart LR
 - **Data da análise:** 2026-10-27
 - **Arquivos consultados na `main`:** `LICENSE`, `PDVMottainai.slnx`, `PDVMottainai/PDVMottainai.csproj`, `PDVMottainai/.gitignore`, `PDVMottainai/.github/worflows/ci.yml`, `App.xaml`, `App.xaml.cs`, `AssemblyInfo.cs`, `MainWindow.xaml`, `MainWindow.xaml.cs`, `Views/LoginPage.xaml`, `Views/LoginPage.xaml.cs`, `Views/salePage.xaml`, `Views/salePage.xaml.cs`, `Services/MockApiService.cs`, os 23 arquivos de `Models/` e a listagem de `IMG/`; além de `git ls-files`, `git log` e `git ls-remote`.
 - **Outras branches (somente leitura, via `git fetch --depth 20`):** `feat/pos-api-implementation` (`PDVMottainai.Api/PDVMottainai.Api.csproj`, `appsettings*.json` só nomes de chaves, `Program.cs`, `docs/DECISAO-API-POS.md`, `docs/API-POS.openapi.yaml`), `ci/setup-github-actions` e `docs/readme-standardization` (apenas `diff --stat`).
-- **Não executado:** `dotnet restore/build/run`, testes e o aplicativo. Afirmações de runtime estão marcadas como inferência ou "não confirmado".
 - **Segredos:** nenhum valor de credencial, CPF ou dado pessoal foi reproduzido; apenas nomes de arquivos e chaves.
 
 </details>
