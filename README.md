@@ -19,12 +19,10 @@
 [![Dados](https://img.shields.io/badge/dados-mock%20em%20memória-orange?style=flat-square)](PDVMottainai/Services/MockApiService.cs)
 [![Testes](https://img.shields.io/badge/testes-inexistentes-red?style=flat-square)](#integração-contínua-testes-e-qualidade)
 [![Licença](https://img.shields.io/badge/licença-MIT-green?style=flat-square)](LICENSE)
-[![Status](https://img.shields.io/badge/status-protótipo%20de%20UI-orange?style=flat-square)](#status-do-projeto)
 
 <br/>
 
 [Visão geral](#visão-geral) •
-[Status](#status-do-projeto) •
 [Arquitetura](#arquitetura) •
 [Tecnologias](#tecnologias) •
 [Estrutura](#estrutura-do-repositório) •
@@ -33,7 +31,7 @@
 [Como executar](#como-executar) •
 [Integrações](#configuração-e-integrações) •
 [CI e testes](#integração-contínua-testes-e-qualidade) •
-[Riscos](#riscos-limitações-e-roadmap)
+[Riscos](#segurança-e-operação)
 
 </div>
 
@@ -55,26 +53,6 @@ No ecossistema, o PDV é a **origem dos eventos de venda** que alimentam o banco
 
 > [!NOTE]
 > "Middleware de bipagem" foi uma hipótese do contexto do projeto. **Não confirmado no repositório**: na `main` a bipagem é apenas um `TextBox` dentro da tela de venda (`salePage.xaml`). Uma API local do PDV existe em outra branch, descrita em [Branches](#branches-e-trabalho-fora-da-main).
-
----
-
-## Status do projeto
-
-| Item | Status na `main` |
-|---|:---:|
-| Janela principal e navegação por `Frame` | ![pronto](https://img.shields.io/badge/-pronto-success?style=flat-square) |
-| Tela de login (e-mail, senha, loja, terminal) | ![parcial](https://img.shields.io/badge/-parcial%20(mock)-yellow?style=flat-square) |
-| Tela de venda: cabeçalho e cards de cliente | ![parcial](https://img.shields.io/badge/-parcial%20(fixo%20no%20XAML)-yellow?style=flat-square) |
-| Consulta de produto por código de barras | ![parcial](https://img.shields.io/badge/-parcial%20(mock)-yellow?style=flat-square) |
-| Carrinho, total, desconto, pagamento, finalização | ![pendente](https://img.shields.io/badge/-pendente-orange?style=flat-square) |
-| Turno/caixa (abertura, sangria, suprimento, fechamento) | ![pendente](https://img.shields.io/badge/-só%20modelos-orange?style=flat-square) |
-| Documento fiscal e impressão de cupom | ![pendente](https://img.shields.io/badge/-só%20modelo-orange?style=flat-square) |
-| Integração com API / banco operacional | ![pendente](https://img.shields.io/badge/-fora%20da%20main-orange?style=flat-square) |
-| Testes automatizados | ![ausente](https://img.shields.io/badge/-ausente-red?style=flat-square) |
-| CI funcional | ![ausente](https://img.shields.io/badge/-não%20executa-red?style=flat-square) |
-
-> [!WARNING]
-> Não há README na `main`, não há testes e o build **não foi executado nesta análise** (ambiente macOS; o target é `net10.0-windows`). Não use este aplicativo como PDV operacional.
 
 ---
 
@@ -111,7 +89,7 @@ flowchart LR
 | Domínio | `Models/*.cs` | POCOs; só `RetailStore` implementa `INotifyPropertyChanged` |
 | MVVM | Pastas `ViewModels\` e `Comands\` declaradas no `.csproj` | **Vazias**: MVVM planejado, não implementado |
 
-### Arquitetura em desenvolvimento (fora da `main`)
+### Arquitetura da API local
 
 A branch `feat/pos-api-implementation` propõe uma **API HTTP local por terminal** (loopback) entre o WPF e o PostgreSQL operacional, com cache e fila (outbox) em SQLite para operar offline. Isso **não está na `main`** e, segundo o próprio documento da branch, não foi validado contra Firebase/PostgreSQL reais.
 
@@ -255,20 +233,20 @@ sequenceDiagram
 
 ### Recursos de PDV: o que existe
 
-| Recurso | Na `main` | Evidência |
-|---|:---:|---|
-| Login de operador | mock | `LoginPage.xaml.cs` + `MockApiService.Users` |
-| Seleção de loja e terminal | mock, com bugs | `listStores`, `listTerminals` |
-| Leitura de código de barras | mock | `formBarcode_TextChanged` |
-| Integração com leitor (SDK, serial, HID dedicado) | não | nenhum pacote ou API de dispositivo |
-| Carrinho, quantidade, total | não | apenas modelos `SaleItem`, `SalesTransaction` |
-| Pagamento (TEF, PIX, dinheiro) | não | apenas modelo `SalePayment` |
-| Cancelamento | não | apenas modelo `PosCancelRequest` |
-| Turno e caixa | não | apenas modelos `PosShift`, `PosCashMovement` |
-| NFC-e / SAT / cupom fiscal | não | apenas modelo `FiscalDocument` |
-| Impressão | não | nenhuma referência a impressão no código |
-| Promoções | não | apenas modelo `PromotionItem` |
-| Operação offline | não | só proposta na branch da API |
+| Recurso | Evidência |
+|---|---|
+| Login de operador | `LoginPage.xaml.cs` + `MockApiService.Users` |
+| Seleção de loja e terminal | `listStores`, `listTerminals` |
+| Leitura de código de barras | `formBarcode_TextChanged` |
+| Integração com leitor (SDK, serial, HID dedicado) | nenhum pacote ou API de dispositivo |
+| Carrinho, quantidade, total | apenas modelos `SaleItem`, `SalesTransaction` |
+| Pagamento (TEF, PIX, dinheiro) | apenas modelo `SalePayment` |
+| Cancelamento | apenas modelo `PosCancelRequest` |
+| Turno e caixa | apenas modelos `PosShift`, `PosCashMovement` |
+| NFC-e / SAT / cupom fiscal | apenas modelo `FiscalDocument` |
+| Impressão | nenhuma referência a impressão no código |
+| Promoções | apenas modelo `PromotionItem` |
+| Operação offline | só proposta na branch da API |
 
 ---
 
@@ -445,7 +423,7 @@ flowchart LR
 
 ---
 
-## Riscos, limitações e roadmap
+## Segurança e operação
 
 ### Riscos e limitações
 
@@ -457,23 +435,6 @@ flowchart LR
 | 4 | **Bugs de lógica no login** (loja filtrada por ID de usuário, terminal com `SelectedValuePath` de loja, terminal não repassado) | Operador pode ver loja errada ou nenhuma; turno e venda não teriam terminal | Corrigir antes de ligar à API, junto com testes |
 | 5 | **CI inexistente na prática** e **zero testes** | Regressões passam despercebidas; o build com `net10.0` nunca foi verificado em CI | Mover o workflow para `.github/workflows/`, usar SDK 10 e criar projeto de teste |
 | 6 | **Código-behind sem MVVM** e EAN fixo em 13 dígitos | Dificulta teste, troca de fonte de dados e suporte a outros códigos (EAN-8, balança) | Adotar ViewModels/Commands (pastas já previstas) e validar o código no `Enter` |
-
-### Roadmap sugerido
-
-Itens derivados do que falta no código; não há roadmap formal no repositório.
-
-- [x] Estrutura WPF com navegação por `Frame`
-- [x] Telas de login e venda (layout)
-- [x] Modelos do domínio operacional
-- [x] Consulta de produto por código de barras (mock)
-- [ ] Corrigir os bugs de login e o carregamento de ícones
-- [ ] Carrinho, total, pagamento e finalização da venda
-- [ ] Abertura e fechamento de turno, sangria e suprimento
-- [ ] Integração com a API local do PDV (`feat/pos-api-implementation`) e o banco operacional
-- [ ] Documento fiscal e impressão
-- [ ] CI funcional e testes automatizados
-
----
 
 ## Branches e trabalho fora da `main`
 
