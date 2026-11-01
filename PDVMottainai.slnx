@@ -1,4 +1,3 @@
 <Solution>
-  <Project Path="PDVMottainai/PDVMottainai.csproj" />
   <Project Path="PDVMottainai.Api/PDVMottainai.Api.csproj" />
 </Solution>

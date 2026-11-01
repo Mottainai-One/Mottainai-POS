@@ -1,6 +1,6 @@
 # API local do PDV Mottainai
 
-Projeto ASP.NET Core independente do WPF. Base URL padrão: `http://127.0.0.1:5097`. Execute `dotnet run --project PDVMottainai.Api` no Windows. A API escuta loopback. A especificação está em `docs/API-POS.openapi.yaml`; ela não é servida por uma rota HTTP.
+Projeto ASP.NET Core independente da interface desktop, que fica no repositório [Mottainai-POS_front](https://github.com/Mottainai-One/mottainai-POS_front). Base URL padrão: `http://127.0.0.1:5097`. Execute `dotnet run --project PDVMottainai.Api` no Windows. A API escuta loopback. A especificação está em `docs/API-POS.openapi.yaml`; ela não é servida por uma rota HTTP.
 
 Configuração é feita por variáveis de ambiente. `Api__Port` define a porta; `Api__TerminalId` é obrigatório para login offline vinculado ao terminal. `Firebase__ProjectId` e `ConnectionStrings__Operational` configuram o Firebase Auth e PostgreSQL operacional; nunca use a conexão analítica. Credenciais ficam em secret store/ambiente protegido, nunca em appsettings versionado. O login e a preparação do grant usam Firebase/PostgreSQL quando configurados.
 

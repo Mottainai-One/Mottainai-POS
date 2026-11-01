@@ -1,6 +1,0 @@
-﻿# Visual Studio cache/options directories
-.vs/
-bin/
-obj/
-*.user
-*.suo

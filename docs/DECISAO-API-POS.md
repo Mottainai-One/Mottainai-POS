@@ -21,11 +21,11 @@ O projeto ASP.NET, schema SQLite local, sessão offline protegida, cache apenas 
 
 1. **Hospedar endpoints dentro do WPF:** descartada porque o aplicativo desktop não deve ser o servidor compartilhado do banco e não fornece um serviço HTTP disponível aos terminais.
 2. **Adicionar ASP.NET Core ao mesmo projeto WPF:** descartada porque acopla hospedagem de API à interface desktop e dificulta implantar a API sem abrir o aplicativo.
-3. **Criar um projeto ASP.NET Core local independente na mesma solução/repositório:** escolhida. Mantém a API implantável separadamente por terminal, disponível em loopback durante a perda de internet, e reutiliza o ambiente .NET 10. Usar Npgsql com SQL parametrizado e transações explícitas para obedecer ao RLS, às funções do banco e às chaves compostas das tabelas particionadas. SQLite local conserva cache e fila offline; quando a API consegue acessar PostgreSQL, grava nele e confirma a fila.
+3. **Criar um projeto ASP.NET Core independente na mesma solução/repositório:** escolhida. A interface desktop foi extraída para o repositório [Mottainai-POS_front](https://github.com/Mottainai-One/mottainai-POS_front); este repositório mantém somente a API. A API é implantável separadamente por terminal e fica disponível em loopback durante a perda de internet. Usar Npgsql com SQL parametrizado e transações explícitas para obedecer ao RLS, às funções do banco e às chaves compostas das tabelas particionadas. SQLite local conserva cache e fila offline; quando a API consegue acessar PostgreSQL, grava nele e confirma a fila.
 
 ## Escopo
 
-Criar `PDVMottainai.Api` ao lado do aplicativo WPF, com bind apenas a loopback por padrão, configuração de conexão por variável de ambiente/secret manager, rotas organizadas por domínio, validação de DTOs, respostas HTTP consistentes, contrato OpenAPI versionado como arquivo estático no repositório (sem rota adicional) e os seguintes endpoints, sem rota 25:
+Manter `PDVMottainai.Api` como único projeto da solução, com bind apenas a loopback por padrão, configuração de conexão por variável de ambiente/secret manager, rotas organizadas por domínio, validação de DTOs, respostas HTTP consistentes, contrato OpenAPI versionado como arquivo estático no repositório (sem rota adicional) e os seguintes endpoints, sem rota 25:
 
 | # | Método e rota | Persistência/uso |
 |---:|---|---|
@@ -72,7 +72,7 @@ O esquema operacional precisa de migração aditiva para `DRAFT` em `sale_status
 ## Fora de escopo
 
 - Adicionar endpoint 25 ou alterar a lista de 24 rotas.
-- Alterar a interface WPF para consumir a API nesta etapa.
+- Alterar a interface desktop no repositório separado para consumir a API nesta etapa.
 - Gravar transações no banco analítico.
 - Emitir documento fiscal, processar adquirente/pagamento ou dar baixa final de estoque sem uma rota de checkout definida.
 - Aplicar migrações no banco remoto/real.
