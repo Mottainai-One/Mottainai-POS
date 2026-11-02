@@ -14,6 +14,9 @@ public sealed class SalesController(LocalStore store, OutboxRepository outbox, O
     public sealed record StartSaleRequest(int? CustomerId, string? Observation, string? IdempotencyKey);
     public sealed record AddItemRequest(int ProductId, decimal Quantity, string? IdempotencyKey);
     public sealed record ChangeItemRequest(decimal Quantity, string? IdempotencyKey);
+    public sealed record SimulatedPaymentPart(string PaymentMethod, decimal Amount);
+    public sealed record SplitPaymentSimulationRequest(IReadOnlyList<SimulatedPaymentPart>? Payments);
+    private static readonly HashSet<string> SimulatedPaymentMethods = ["CASH", "PIX", "DEBIT_CARD", "CREDIT_CARD"];
     int Employee => int.Parse(User.FindFirstValue("employee_id")!);
     int StoreId => int.Parse(User.FindFirstValue("store_id")!);
     int Terminal => int.Parse(User.FindFirstValue("terminal_id")!);
@@ -132,6 +135,57 @@ public sealed class SalesController(LocalStore store, OutboxRepository outbox, O
             realPaymentProcessed = false,
             itemCount,
             totalAmount,
+            completedAt = DateTimeOffset.UtcNow
+        });
+    }
+
+    [HttpPost("{saleId:int}/completion-simulation/payments")]
+    public async Task<IActionResult> SimulateCompletionWithPayments(int saleId, SplitPaymentSimulationRequest request, CancellationToken ct)
+    {
+        if (request.Payments is not { Count: > 0 and <= 10 })
+            return BadRequest(new { error = "one_to_ten_payment_parts_required" });
+        if (request.Payments.Any(payment => !SimulatedPaymentMethods.Contains(payment.PaymentMethod?.Trim().ToUpperInvariant() ?? string.Empty) || payment.Amount <= 0 || decimal.Round(payment.Amount, 2) != payment.Amount))
+            return BadRequest(new { error = "invalid_payment_part" });
+
+        await using var db = await store.OpenConnectionAsync(ct);
+        await using var saleCommand = db.CreateCommand();
+        saleCommand.CommandText = "SELECT status FROM local_sale WHERE local_sale_id=$id AND employee_id=$employee";
+        saleCommand.Parameters.AddWithValue("$id", saleId);
+        saleCommand.Parameters.AddWithValue("$employee", Employee);
+        var status = await saleCommand.ExecuteScalarAsync(ct);
+        if (status is null) return NotFound();
+        if (!string.Equals(Convert.ToString(status), "DRAFT", StringComparison.Ordinal))
+            return Conflict(new { error = "sale_must_be_draft" });
+
+        await using var itemsCommand = db.CreateCommand();
+        itemsCommand.CommandText = "SELECT quantity,unit_price FROM local_sale_item WHERE sale_id=$id AND CAST(quantity AS REAL)>0 ORDER BY local_sale_item_id";
+        itemsCommand.Parameters.AddWithValue("$id", saleId);
+        await using var reader = await itemsCommand.ExecuteReaderAsync(ct);
+        var itemCount = 0;
+        decimal totalAmount = 0;
+        while (await reader.ReadAsync(ct))
+        {
+            var quantity = decimal.Parse(reader.GetString(0), System.Globalization.CultureInfo.InvariantCulture);
+            var unitPrice = decimal.Parse(reader.GetString(1), System.Globalization.CultureInfo.InvariantCulture);
+            totalAmount += quantity * unitPrice;
+            itemCount++;
+        }
+        if (itemCount == 0) return Conflict(new { error = "sale_has_no_items" });
+
+        var paymentTotal = request.Payments.Sum(payment => payment.Amount);
+        if (paymentTotal != totalAmount)
+            return BadRequest(new { error = "payment_parts_must_match_sale_total", saleTotal = totalAmount, paymentTotal });
+
+        return Ok(new
+        {
+            saleId,
+            status = "SIMULATED",
+            simulation = true,
+            persisted = false,
+            realPaymentProcessed = false,
+            itemCount,
+            totalAmount,
+            payments = request.Payments.Select(payment => new { paymentMethod = payment.PaymentMethod.Trim().ToUpperInvariant(), payment.Amount }),
             completedAt = DateTimeOffset.UtcNow
         });
     }
