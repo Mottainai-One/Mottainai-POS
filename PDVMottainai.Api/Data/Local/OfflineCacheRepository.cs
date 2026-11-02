@@ -107,7 +107,7 @@ public sealed class OfflineCacheRepository(LocalStore store)
         transaction.Commit();
     }
 
-    public async Task<IReadOnlyList<CachedProduct>> SearchProductsAsync(string? query, int limit, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<CachedProduct>> SearchProductsAsync(string? query, int limit, int offset = 0, CancellationToken cancellationToken = default)
     {
         var normalized = query?.Trim();
         await using var connection = await store.OpenConnectionAsync(cancellationToken);
@@ -115,16 +115,17 @@ public sealed class OfflineCacheRepository(LocalStore store)
         command.CommandText = string.IsNullOrEmpty(normalized)
             ? """
               SELECT product_id, sku, barcode, name, unit_measure, normal_price, active, version, cached_at
-              FROM product_cache WHERE active = 1 ORDER BY name LIMIT $limit;
+              FROM product_cache WHERE active = 1 ORDER BY name LIMIT $limit OFFSET $offset;
               """
             : """
               SELECT product_id, sku, barcode, name, unit_measure, normal_price, active, version, cached_at
               FROM product_cache
               WHERE active = 1 AND (sku LIKE $query OR barcode = $exact OR name LIKE $query)
               ORDER BY CASE WHEN barcode = $exact THEN 0 WHEN sku = $exact THEN 1 ELSE 2 END, name
-              LIMIT $limit;
+              LIMIT $limit OFFSET $offset;
               """;
         command.Parameters.AddWithValue("$limit", Math.Clamp(limit, 1, 100));
+        command.Parameters.AddWithValue("$offset", Math.Max(offset, 0));
         if (!string.IsNullOrEmpty(normalized))
         {
             command.Parameters.AddWithValue("$query", $"%{EscapeLike(normalized)}%");
