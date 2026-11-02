@@ -91,6 +91,32 @@ public sealed class SalesController(LocalStore store, OutboxRepository outbox, O
         if (price is null || !price.Value.Product.Active) return NotFound(new { error = "product_not_in_offline_catalog" });
         using var tx=db.BeginTransaction();
         await using var sale=db.CreateCommand(); sale.Transaction=tx; sale.CommandText="SELECT 1 FROM local_sale WHERE local_sale_id=$id AND employee_id=$employee AND status='DRAFT'"; sale.Parameters.AddWithValue("$id",saleId); sale.Parameters.AddWithValue("$employee",Employee); if(await sale.ExecuteScalarAsync(ct) is null)return NotFound();
+        await using (var existing=db.CreateCommand())
+        {
+            existing.Transaction=tx;
+            existing.CommandText="SELECT local_sale_item_id,quantity FROM local_sale_item WHERE sale_id=$sale AND product_id=$product ORDER BY local_sale_item_id LIMIT 1";
+            existing.Parameters.AddWithValue("$sale",saleId); existing.Parameters.AddWithValue("$product",request.ProductId);
+            await using var reader=await existing.ExecuteReaderAsync(ct);
+            if(await reader.ReadAsync(ct))
+            {
+                var mergedItemId=reader.GetInt32(0);
+                var currentQuantity=decimal.Parse(reader.GetString(1),System.Globalization.CultureInfo.InvariantCulture);
+                await reader.DisposeAsync();
+                var quantity=currentQuantity+request.Quantity;
+                var combinedPrice=await GetApplicablePriceAsync(customerId,request.ProductId,quantity,ct);
+                if(combinedPrice is null || !combinedPrice.Value.Product.Active)return NotFound(new{error="product_not_in_offline_catalog"});
+                var mergedAt=DateTimeOffset.UtcNow;
+                await using var update=db.CreateCommand(); update.Transaction=tx;
+                update.CommandText="UPDATE local_sale_item SET quantity=$quantity,unit_price=$price,sync_state='PENDING',updated_at=$at WHERE local_sale_item_id=$item";
+                update.Parameters.AddWithValue("$quantity",quantity.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                update.Parameters.AddWithValue("$price",combinedPrice.Value.AppliedPrice.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                update.Parameters.AddWithValue("$at",mergedAt.ToString("O")); update.Parameters.AddWithValue("$item",mergedItemId);
+                await update.ExecuteNonQueryAsync(ct);
+                await Enqueue(db,tx,mergedItemId,"CHANGE_SALE_ITEM",new{saleId,itemId=mergedItemId,employeeId=Employee,quantity,unitPrice=combinedPrice.Value.AppliedPrice},requestKey.ToString("D"),ct);
+                tx.Commit();
+                return Accepted(new{itemId=mergedItemId,saleId,request.ProductId,quantity,unitPrice=combinedPrice.Value.AppliedPrice,normalPrice=combinedPrice.Value.Product.NormalPrice,promotionalPrice=combinedPrice.Value.PromotionId is null?(decimal?)null:combinedPrice.Value.AppliedPrice,promotionId=combinedPrice.Value.PromotionId,syncState="PENDING"});
+            }
+        }
         await using var seq=db.CreateCommand();seq.Transaction=tx;seq.CommandText="UPDATE local_sequence SET next_value=next_value-1 WHERE sequence_name='sale_item' RETURNING next_value+1";var itemId=Convert.ToInt32(await seq.ExecuteScalarAsync(ct));var now=DateTimeOffset.UtcNow;
         await using var insert=db.CreateCommand();insert.Transaction=tx;insert.CommandText="INSERT INTO local_sale_item(local_sale_item_id,sale_id,product_id,quantity,unit_price,sync_state,updated_at) VALUES($id,$sale,$product,$quantity,$price,'PENDING',$at)";insert.Parameters.AddWithValue("$id",itemId);insert.Parameters.AddWithValue("$sale",saleId);insert.Parameters.AddWithValue("$product",request.ProductId);insert.Parameters.AddWithValue("$quantity",request.Quantity.ToString(System.Globalization.CultureInfo.InvariantCulture));insert.Parameters.AddWithValue("$price",price.Value.AppliedPrice.ToString(System.Globalization.CultureInfo.InvariantCulture));insert.Parameters.AddWithValue("$at",now.ToString("O"));await insert.ExecuteNonQueryAsync(ct);await Enqueue(db,tx,itemId,"ADD_SALE_ITEM",new{saleId,itemId,employeeId=Employee,productId=request.ProductId,quantity=request.Quantity,unitPrice=price.Value.AppliedPrice},requestKey.ToString("D"),ct);tx.Commit();return Accepted(new{itemId,saleId,request.ProductId,request.Quantity,unitPrice=price.Value.AppliedPrice,normalPrice=price.Value.Product.NormalPrice,promotionalPrice=price.Value.PromotionId is null?(decimal?)null:price.Value.AppliedPrice,promotionId=price.Value.PromotionId,syncState="PENDING"});
     }
