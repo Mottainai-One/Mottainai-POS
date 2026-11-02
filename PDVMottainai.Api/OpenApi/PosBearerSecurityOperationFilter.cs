@@ -18,17 +18,27 @@ public sealed class PosBearerSecurityOperationFilter : IOperationFilter
             || (controller is not null
                 && controller.GetCustomAttributes(typeof(AllowAnonymousAttribute), inherit: true).Length > 0);
 
+        var authorizeAttributes = method.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
+            .Cast<AuthorizeAttribute>()
+            .Concat(controller is null
+                ? []
+                : controller.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
+                    .Cast<AuthorizeAttribute>())
+            .ToArray();
+
         string? scheme = null;
         if (controller == typeof(AuthController) && method.Name == nameof(AuthController.Login))
         {
             scheme = FirebaseBearerScheme;
         }
-        else if (!allowsAnonymous &&
-                 (method.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true).Length > 0
-                  || (controller is not null
-                      && controller.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true).Length > 0)))
+        else if (!allowsAnonymous && authorizeAttributes.Length > 0)
         {
-            scheme = PosBearerScheme;
+            var usesFirebase = authorizeAttributes
+                .SelectMany(attribute => (attribute.AuthenticationSchemes ?? string.Empty)
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                .Any(authenticationScheme => string.Equals(
+                    authenticationScheme, "Firebase", StringComparison.OrdinalIgnoreCase));
+            scheme = usesFirebase ? FirebaseBearerScheme : PosBearerScheme;
         }
 
         if (scheme is null)

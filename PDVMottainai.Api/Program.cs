@@ -32,7 +32,7 @@ builder.Services.AddSwaggerGen(options =>
         Type = SecuritySchemeType.Http,
         Scheme = "bearer",
         BearerFormat = "Firebase ID token",
-        Description = "POST /auth/login requires a Firebase ID token in the Authorization header."
+        Description = "Use a Firebase ID token for POST /auth/login and manager approval decisions."
     });
     options.OperationFilter<PosBearerSecurityOperationFilter>();
 });

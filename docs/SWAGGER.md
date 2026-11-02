@@ -19,7 +19,7 @@ Swagger endpoints are enabled only when the hosting environment is `Development`
 
 Use the **Authorize** button in Swagger UI:
 
-- **FirebaseBearer**: provide a Firebase ID token to call `POST /auth/login`.
+- **FirebaseBearer**: provide a Firebase ID token to call `POST /auth/login` and manager approval decision routes.
 - **PosBearer**: provide the local access token returned by `POST /auth/login` or `POST /auth/offline-login` to call protected POS operations.
 
 Enter the token only; Swagger UI applies the `Bearer` prefix. Anonymous endpoints do not require a token. Keep real tokens and credentials private.

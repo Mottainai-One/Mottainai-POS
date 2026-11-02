@@ -4,7 +4,7 @@
 
 When the API runs with `ASPNETCORE_ENVIRONMENT=Development`, open `http://localhost:5097/swagger` to browse and try the API endpoints. The generated OpenAPI document is available at `http://localhost:5097/swagger/v1/swagger.json`. Swagger is intentionally disabled outside the Development environment.
 
-The Swagger UI distinguishes Firebase ID tokens used by `POST /auth/login` from local POS access tokens used by protected operations. Obtain a local token through online login or offline login before trying protected endpoints. Do not paste production credentials or tokens into shared screenshots or commit them to the repository.
+The Swagger UI distinguishes Firebase ID tokens used by `POST /auth/login` and manager approval decisions from local POS access tokens used by protected operations. Obtain a local token through online login or offline login before trying protected endpoints. Do not paste production credentials or tokens into shared screenshots or commit them to the repository.
 
 The API is an ASP.NET Core service separate from the desktop interface in [Mottainai-POS_front](https://github.com/Mottainai-One/mottainai-POS_front). Its default base URL is `http://127.0.0.1:5097`. On Windows, run `dotnet run --project PDVMottainai.Api`. The API listens on loopback. The maintained static contract is `docs/API-POS.openapi.yaml`.
 
