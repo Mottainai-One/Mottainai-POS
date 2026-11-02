@@ -213,13 +213,26 @@ public sealed class ReferenceDataController(OfflineCacheRepository cache, Postgr
         return customer is null ? NotFound() : Ok(customer);
     }
 
-    public sealed record CpfCustomerSearchRequest(string CpfToken);
+    public sealed record CpfCustomerSearchRequest(string Cpf);
     [HttpPost("/customers/search-by-cpf")]
     public async Task<IActionResult> CustomerSearchByCpf(CpfCustomerSearchRequest request, CancellationToken ct)
     {
-        var cpfToken = request.CpfToken;
-        if (string.IsNullOrWhiteSpace(cpfToken) || !System.Text.RegularExpressions.Regex.IsMatch(cpfToken, "^CPF_SHA256_[0-9A-Fa-f]{64}$", System.Text.RegularExpressions.RegexOptions.CultureInvariant))
-            return BadRequest(new { error = "tokenized_cpf_required" });
+        var cpfValue = request.Cpf?.Trim();
+        if (string.IsNullOrWhiteSpace(cpfValue))
+            return BadRequest(new { error = "valid_cpf_required" });
+
+        string cpfToken;
+        if (System.Text.RegularExpressions.Regex.IsMatch(cpfValue, "^CPF_SHA256_[0-9A-Fa-f]{64}$", System.Text.RegularExpressions.RegexOptions.CultureInvariant))
+        {
+            cpfToken = cpfValue.ToUpperInvariant();
+        }
+        else
+        {
+            var digits = System.Text.RegularExpressions.Regex.Replace(cpfValue, "\\D", string.Empty);
+            if (digits.Length != 11)
+                return BadRequest(new { error = "valid_cpf_required" });
+            cpfToken = $"CPF_SHA256_{LocalStore.Sha256(digits).ToUpperInvariant()}";
+        }
 
         var tokenHash = LocalStore.Sha256(cpfToken);
         if (postgres.IsConfigured)
