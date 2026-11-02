@@ -61,6 +61,9 @@ paths:
     post: { summary: Enfileirar pedido de aprovação do gerente, description: Funciona offline. Tipos CANCEL_PURCHASE, CANCEL_PRODUCT, REFUND, RETURN e SPECIAL_DISCOUNT. Estorno/devolução são registros de aprovação sem execução financeira/estoque integrada., responses: { '202': { description: Pedido armazenado localmente para sincronização }, '400': { description: Dados do pedido inválidos }, '404': { description: Venda não encontrada } } }
   /approvals/{requestId}:
     get: { summary: Consultar o estado local de um pedido de aprovação, parameters: [{ in: path, name: requestId, required: true, schema: { type: string, format: uuid } }], responses: { '200': { description: Pedido e estado de sincronização/aprovação }, '404': { description: Pedido não encontrado } } }
+  /approvals/{requestId}/manager-decision:
+    post: { security: [{ firebaseBearerAuth: [] }], summary: Record a manager decision using a Firebase ID token, description: The manager must be active and belong to the request store. This operation requires an internet connection. Refund and return approvals are recorded only; no payment is processed., parameters: [{ in: path, name: requestId, required: true, schema: { type: string, format: uuid } }], responses: { '200': { description: Decision recorded }, '401': { description: Valid Firebase ID token required }, '403': { description: Authenticated user is not an active manager for this store }, '404': { description: Approval request not found }, '409': { description: Request is not synchronized, is not pending, or its target sale item is no longer a draft }, '503': { description: Operational database unavailable } } }
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer }
+    firebaseBearerAuth: { type: http, scheme: bearer, description: Firebase ID token for manager approval }
