@@ -37,9 +37,9 @@ paths:
   /shifts/{shiftId}:
     get: { summary: Consultar turno, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Turno }, '404': { description: Não encontrado } } }
   /shifts/{shiftId}/summary:
-    get: { summary: Consultar saldo e resumo, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Resumo local } } }
+    get: { summary: Consultar resumo do turno sem revelar o valor esperado do caixa antes da contagem, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Resumo do turno sem o saldo esperado; o valor esperado só é retornado após o fechamento } } }
   /shifts/{shiftId}/closing:
-    post: { summary: Finalizar turno online, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Turno fechado }, '503': { description: Requer conexão; turno segue aberto } } }
+    post: { summary: Finalizar turno online e retornar o resultado da contagem cega com relatório, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Turno fechado com valor contado, valor esperado, diferença e relatório contendo duração, quantidade de vendas, total vendido e ticket médio }, '503': { description: Requer conexão; turno segue aberto } } }
   /shifts/{shiftId}/cash-movements:
     get: { summary: Listar movimentações, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Movimentações locais } } }
   /shifts/{shiftId}/cash-withdrawals:
