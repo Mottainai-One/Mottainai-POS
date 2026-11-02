@@ -117,6 +117,7 @@ public sealed class ReferenceDataController(OfflineCacheRepository cache, Postgr
         catch (NpgsqlException) { return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "operational_database_unavailable" }); }
     }
 
+    [HttpGet("/products")]
     public async Task<IActionResult> Products([FromQuery] string? query, [FromQuery] int limit = 50, [FromQuery] int offset = 0, [FromQuery] int? customerId = null, CancellationToken ct = default)
     {
         if (offset < 0) return BadRequest(new { error = "offset_must_be_nonnegative" });
