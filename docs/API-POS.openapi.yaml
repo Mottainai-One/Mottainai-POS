@@ -9,13 +9,15 @@ security:
   - bearerAuth: []
 paths:
   /auth/login:
-    post: { security: [], summary: Entrar online como operador, responses: { '200': { description: Sessão iniciada }, '503': { description: Serviço online indisponível } } }
+    post: { security: [], summary: Entrar online como operador em um terminal autorizado, parameters: [{ in: query, name: terminalCode, required: false, description: Código retornado por GET /auth/available-access; Api:TerminalId é usado como compatibilidade se omitido, schema: { type: string } }], responses: { '200': { description: Sessão iniciada com perfil e permissões }, '401': { description: Operador ou terminal não autorizado }, '503': { description: Serviço online indisponível } } }
+  /auth/available-access:
+    get: { security: [{ firebaseBearerAuth: [] }], summary: Listar a loja e os terminais autorizados ao funcionário autenticado no Firebase, responses: { '200': { description: Uma loja e os terminais ativos dessa loja }, '401': { description: Operador não autorizado }, '503': { description: Banco operacional indisponível } } }
   /auth/refresh:
     post: { security: [], summary: Renovar sessão local, responses: { '200': { description: Sessão renovada }, '401': { description: Sessão inválida } } }
   /auth/logout:
     post: { summary: Sair da conta, responses: { '204': { description: Sessão revogada } } }
   /auth/me:
-    get: { summary: Consultar operador e permissões, responses: { '200': { description: Operador atual } } }
+    get: { summary: Consultar perfil completo do operador e permissões, responses: { '200': { description: Perfil funcional, loja, terminal e permissões da sessão } } }
   /auth/offline-login:
     post: { security: [], summary: Entrar com autorização offline prévia, responses: { '200': { description: Sessão local }, '401': { description: Grant inválido, expirado ou de outro terminal } } }
   /offline-sessions:
