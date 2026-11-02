@@ -1,6 +1,12 @@
 # API local do PDV Mottainai
 
-Projeto ASP.NET Core independente da interface desktop, que fica no repositório [Mottainai-POS_front](https://github.com/Mottainai-One/mottainai-POS_front). Base URL padrão: `http://127.0.0.1:5097`. Execute `dotnet run --project PDVMottainai.Api` no Windows. A API escuta loopback. A especificação está em `docs/API-POS.openapi.yaml`; ela não é servida por uma rota HTTP.
+## Interactive API documentation
+
+When the API runs with `ASPNETCORE_ENVIRONMENT=Development`, open `http://localhost:5097/swagger` to browse and try the API endpoints. The generated OpenAPI document is available at `http://localhost:5097/swagger/v1/swagger.json`. Swagger is intentionally disabled outside the Development environment.
+
+The Swagger UI distinguishes Firebase ID tokens used by `POST /auth/login` from local POS access tokens used by protected operations. Obtain a local token through online login or offline login before trying protected endpoints. Do not paste production credentials or tokens into shared screenshots or commit them to the repository.
+
+The API is an ASP.NET Core service separate from the desktop interface in [Mottainai-POS_front](https://github.com/Mottainai-One/mottainai-POS_front). Its default base URL is `http://127.0.0.1:5097`. On Windows, run `dotnet run --project PDVMottainai.Api`. The API listens on loopback. The maintained static contract is `docs/API-POS.openapi.yaml`.
 
 Configuração é feita por variáveis de ambiente. `Api__Port` define a porta; `Api__TerminalId` é obrigatório para login offline vinculado ao terminal. `Firebase__ProjectId` e `ConnectionStrings__Operational` configuram o Firebase Auth e PostgreSQL operacional; nunca use a conexão analítica. Credenciais ficam em secret store/ambiente protegido, nunca em appsettings versionado. O login e a preparação do grant usam Firebase/PostgreSQL quando configurados.
 
