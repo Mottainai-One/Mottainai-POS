@@ -53,6 +53,7 @@ builder.Services.AddSingleton<LocalStore>();
 builder.Services.AddSingleton<OutboxRepository>();
 builder.Services.AddSingleton<OfflineCacheRepository>();
 builder.Services.AddSingleton<PDVMottainai.Api.Data.PostgresRequestScopeFactory>();
+builder.Services.AddSingleton<PDVMottainai.Api.Security.CustomerDataCryptography>();
 builder.Services.AddHostedService<LocalStoreInitializer>();
 builder.Services.AddHostedService<OutboxSyncService>();
 builder.Services.AddHttpClient<PosApprovalCloudClient>();

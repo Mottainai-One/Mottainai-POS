@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
@@ -9,13 +10,15 @@ using PDVMottainai.Api.Data.Local;
 namespace PDVMottainai.Api.Endpoints;
 
 [ApiController, Authorize, Route("sales")]
-public sealed class SalesController(LocalStore store, OutboxRepository outbox, OfflineCacheRepository cache, PostgresRequestScopeFactory postgres) : ControllerBase
+public sealed class SalesController(LocalStore store, OutboxRepository outbox, OfflineCacheRepository cache, PostgresRequestScopeFactory postgres, PDVMottainai.Api.Security.CustomerDataCryptography customerDataCryptography) : ControllerBase
 {
     public sealed record StartSaleRequest(int? CustomerId, string? Observation, string? IdempotencyKey);
     public sealed record AddItemRequest(int ProductId, decimal Quantity, string? IdempotencyKey);
     public sealed record ChangeItemRequest(decimal Quantity, string? IdempotencyKey);
     public sealed record SimulatedPaymentPart(string PaymentMethod, decimal Amount);
     public sealed record SplitPaymentSimulationRequest(IReadOnlyList<SimulatedPaymentPart>? Payments);
+    public sealed record CustomerAddressResponse(string? ZipCode, string? Street, string? Number, string? Complement, string? Neighborhood, string? City, string? State);
+    public sealed record CustomerPrivateProfileResponse(string? FullName, string? Cpf, string? Email, string? Phone, DateOnly? BirthDate, CustomerAddressResponse? Address);
     private static readonly HashSet<string> SimulatedPaymentMethods = ["CASH", "PIX", "DEBIT_CARD", "CREDIT_CARD"];
     int Employee => int.Parse(User.FindFirstValue("employee_id")!);
     int StoreId => int.Parse(User.FindFirstValue("store_id")!);
@@ -60,6 +63,79 @@ public sealed class SalesController(LocalStore store, OutboxRepository outbox, O
         await using var db = await store.OpenConnectionAsync(ct); await using var cmd = db.CreateCommand(); cmd.CommandText = "SELECT sale_date,store_id,employee_id,shift_id,customer_id,status,sync_state,observation_ciphertext FROM local_sale WHERE local_sale_id=$id AND employee_id=$employee"; cmd.Parameters.AddWithValue("$id", saleId); cmd.Parameters.AddWithValue("$employee", Employee); await using var reader = await cmd.ExecuteReaderAsync(ct); if (!await reader.ReadAsync(ct)) { await reader.DisposeAsync(); return await GetRemoteSaleAsync(saleId,ct); }
         var sale = new { saleId, saleDate = reader.GetString(0), storeId = reader.GetInt32(1), employeeId = reader.GetInt32(2), shiftId = reader.GetInt32(3), customerId = reader.IsDBNull(4) ? (int?)null : reader.GetInt32(4), status = reader.GetString(5), syncState = reader.GetString(6), observation = reader.IsDBNull(7) ? null : store.Unprotect((byte[])reader[7]) }; await reader.DisposeAsync();
         await using var items = db.CreateCommand(); items.CommandText = "SELECT local_sale_item_id,product_id,quantity,unit_price FROM local_sale_item WHERE sale_id=$id ORDER BY local_sale_item_id"; items.Parameters.AddWithValue("$id", saleId); await using var itemReader = await items.ExecuteReaderAsync(ct); var list = new List<object>(); decimal total=0; while(await itemReader.ReadAsync(ct)){var q=decimal.Parse(itemReader.GetString(2));var p=decimal.Parse(itemReader.GetString(3));total+=q*p;list.Add(new{itemId=itemReader.GetInt32(0),productId=itemReader.GetInt32(1),quantity=q,unitPrice=p,subtotal=q*p});} return Ok(new { sale, items=list, totalAmount=total });
+    }
+
+    [HttpGet("{saleId:int}/customer")]
+    public async Task<IActionResult> GetSaleCustomer(int saleId, CancellationToken ct)
+    {
+        if (!postgres.IsConfigured)
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "customer_profile_requires_online_database" });
+
+        int remoteSaleId;
+        await using (var localDb = await store.OpenConnectionAsync(ct))
+        await using (var localSale = localDb.CreateCommand())
+        {
+            localSale.CommandText = "SELECT remote_sale_id,customer_id,sync_state FROM local_sale WHERE local_sale_id=$sale AND employee_id=$employee AND status='DRAFT'";
+            localSale.Parameters.AddWithValue("$sale", saleId);
+            localSale.Parameters.AddWithValue("$employee", Employee);
+            await using var reader = await localSale.ExecuteReaderAsync(ct);
+            if (!await reader.ReadAsync(ct)) return NotFound();
+            if (reader.IsDBNull(1)) return NotFound(new { error = "sale_has_no_customer" });
+            if (reader.IsDBNull(0) || reader.GetString(2) != "SYNCED")
+                return Conflict(new { error = "sale_must_be_synced_before_customer_profile_lookup" });
+            remoteSaleId = reader.GetInt32(0);
+        }
+
+        try
+        {
+            await using var scope = await postgres.OpenStaffScopeAsync(User.FindFirstValue(ClaimTypes.NameIdentifier)!, ct);
+            if (scope is null) return Unauthorized();
+
+            int customerId;
+            await using (var saleCommand = new NpgsqlCommand("""
+                SELECT customer_id
+                FROM mottainai.sales_transaction
+                WHERE sale_id=$1 AND employee_id=$2 AND store_id=$3
+                  AND status='DRAFT' AND customer_id IS NOT NULL AND deleted_at IS NULL
+                """, scope.Connection, scope.Transaction))
+            {
+                saleCommand.Parameters.AddWithValue(remoteSaleId);
+                saleCommand.Parameters.AddWithValue(Employee);
+                saleCommand.Parameters.AddWithValue(StoreId);
+                var value = await saleCommand.ExecuteScalarAsync(ct);
+                if (value is null or DBNull) return NotFound(new { error = "customer_not_attached_to_open_draft_sale" });
+                customerId = Convert.ToInt32(value);
+            }
+
+            byte[] ciphertext;
+            byte[] nonce;
+            short keyVersion;
+            await using (var privateData = new NpgsqlCommand("""
+                SELECT payload_ciphertext,payload_nonce,key_version
+                FROM mottainai.customer_private_data
+                WHERE customer_id=$1 AND deleted_at IS NULL
+                """, scope.Connection, scope.Transaction))
+            {
+                privateData.Parameters.AddWithValue(customerId);
+                await using var reader = await privateData.ExecuteReaderAsync(ct);
+                if (!await reader.ReadAsync(ct)) return NotFound(new { error = "customer_private_data_not_found" });
+                ciphertext = (byte[])reader[0];
+                nonce = (byte[])reader[1];
+                keyVersion = reader.GetInt16(2);
+            }
+
+            await scope.CommitAsync(ct);
+            var plaintext = customerDataCryptography.Decrypt(customerId, ciphertext, nonce, keyVersion);
+            var profile = JsonSerializer.Deserialize<CustomerPrivateProfileResponse>(plaintext, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            return profile is null
+                ? StatusCode(StatusCodes.Status502BadGateway, new { error = "customer_private_data_invalid" })
+                : Ok(profile);
+        }
+        catch (PostgresException) { throw; }
+        catch (NpgsqlException) { return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "operational_database_unavailable" }); }
+        catch (InvalidOperationException) { return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "customer_data_decryption_not_configured" }); }
+        catch (CryptographicException) { return StatusCode(StatusCodes.Status502BadGateway, new { error = "customer_private_data_could_not_be_decrypted" }); }
+        catch (JsonException) { return StatusCode(StatusCodes.Status502BadGateway, new { error = "customer_private_data_invalid" }); }
     }
 
     private async Task<IActionResult> GetRemoteSaleAsync(int saleId,CancellationToken ct)
