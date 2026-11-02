@@ -107,6 +107,39 @@ public sealed class OfflineCacheRepository(LocalStore store)
         transaction.Commit();
     }
 
+    public async Task ReplaceAllProductsAsync(IEnumerable<CachedProduct> products, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await store.OpenConnectionAsync(cancellationToken);
+        await using var transaction = connection.BeginTransaction();
+        await using (var delete = connection.CreateCommand())
+        {
+            delete.Transaction = transaction;
+            delete.CommandText = "DELETE FROM product_cache;";
+            await delete.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        foreach (var product in products)
+        {
+            await using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = """
+                INSERT INTO product_cache(product_id,sku,barcode,name,unit_measure,normal_price,active,version,cached_at)
+                VALUES($product_id,$sku,$barcode,$name,$unit_measure,$normal_price,$active,$version,$cached_at);
+                """;
+            command.Parameters.AddWithValue("$product_id", product.ProductId);
+            command.Parameters.AddWithValue("$sku", product.Sku);
+            command.Parameters.AddWithValue("$barcode", (object?)product.Barcode ?? DBNull.Value);
+            command.Parameters.AddWithValue("$name", product.Name);
+            command.Parameters.AddWithValue("$unit_measure", product.UnitMeasure);
+            command.Parameters.AddWithValue("$normal_price", product.NormalPrice.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            command.Parameters.AddWithValue("$active", product.Active ? 1 : 0);
+            command.Parameters.AddWithValue("$version", product.Version);
+            command.Parameters.AddWithValue("$cached_at", product.CachedAt.ToString("O"));
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+        transaction.Commit();
+    }
+
     public async Task<IReadOnlyList<CachedProduct>> SearchProductsAsync(string? query, int limit, CancellationToken cancellationToken = default)
     {
         var normalized = query?.Trim();

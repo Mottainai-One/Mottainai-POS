@@ -36,6 +36,48 @@ public sealed class ReferenceDataController(OfflineCacheRepository cache, Postgr
     [HttpGet("/capabilities")]
     public IActionResult Capabilities() => Ok(new { onlineConfigured = postgres.IsConfigured && !string.IsNullOrWhiteSpace(configuration["Firebase:ProjectId"]), offline = true, offlinePromotions = false, routes = new { login = "online", offlineSessionPreparation = "online", shiftClosing = "online" } });
 
+    [HttpPost("/offline-catalog/sync")]
+    public async Task<IActionResult> SyncOfflineCatalog(CancellationToken ct)
+    {
+        if (!postgres.IsConfigured) return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "catalog_sync_requires_online_database" });
+        try
+        {
+            var storeId=int.Parse(User.FindFirstValue("store_id")!);
+            await using var scope=await postgres.OpenStaffScopeAsync(User.FindFirstValue(ClaimTypes.NameIdentifier)!,ct);
+            if(scope is null)return Unauthorized();
+            const int pageSize=500;
+            var products=new List<CachedProduct>();
+            var cachedAt=DateTimeOffset.UtcNow;
+            var lastProductId=0;
+            while(true)
+            {
+                await using var command=new NpgsqlCommand("""
+                    SELECT p.product_id,p.sku,p.barcode,p.name,p.unit_measure,price.regular_price,p.active,p.version
+                    FROM mottainai.product p
+                    JOIN LATERAL(SELECT regular_price FROM mottainai.store_product_price sp
+                      WHERE sp.product_id=p.product_id AND sp.store_id=$1 AND sp.active
+                        AND sp.valid_from<=CURRENT_TIMESTAMP AND (sp.valid_until IS NULL OR sp.valid_until>CURRENT_TIMESTAMP)
+                      ORDER BY sp.valid_from DESC LIMIT 1) price ON TRUE
+                    WHERE p.active AND p.deleted_at IS NULL AND p.product_id>$3
+                    ORDER BY p.product_id LIMIT $2
+                    """,scope.Connection,scope.Transaction);
+                command.Parameters.AddWithValue(storeId);command.Parameters.AddWithValue(pageSize);command.Parameters.AddWithValue(lastProductId);
+                await using var reader=await command.ExecuteReaderAsync(ct);
+                var page=new List<CachedProduct>();
+                while(await reader.ReadAsync(ct))page.Add(new(reader.GetInt32(0),reader.GetString(1),reader.IsDBNull(2)?null:reader.GetString(2),reader.GetString(3),reader.GetString(4),reader.GetDecimal(5),reader.GetBoolean(6),reader.GetInt32(7),cachedAt));
+                await reader.DisposeAsync();
+                products.AddRange(page);
+                if(page.Count>0)lastProductId=page[^1].ProductId;
+                if(page.Count<pageSize)break;
+            }
+            await scope.CommitAsync(ct);
+            await cache.ReplaceAllProductsAsync(products,ct);
+            return Ok(new{storeId,productCount=products.Count,priceMode="REGULAR",promotionsCached=false,cachedAt});
+        }
+        catch(PostgresException){throw;}
+        catch(NpgsqlException){return StatusCode(StatusCodes.Status503ServiceUnavailable,new{error="operational_database_unavailable"});}
+    }
+
     [HttpGet("/products")]
     public async Task<IActionResult> Products([FromQuery] string? query, [FromQuery] int limit = 50, [FromQuery] int? customerId = null, CancellationToken ct = default)
     {
