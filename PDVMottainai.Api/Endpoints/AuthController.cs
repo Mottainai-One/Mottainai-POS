@@ -21,7 +21,7 @@ public sealed class AuthController(LocalStore store, PostgresRequestScopeFactory
     public sealed record LocalSessionResponse(string accessToken, string refreshToken, string tokenType, DateTimeOffset expiresAt);
 
     [HttpPost("login"), AllowAnonymous]
-    public async Task<IActionResult> Login(CancellationToken ct)
+    public async Task<IActionResult> Login([FromQuery] string? terminalCode, CancellationToken ct)
     {
         var firebase = await HttpContext.AuthenticateAsync("Firebase");
         if (!firebase.Succeeded || firebase.Principal?.FindFirst("sub")?.Value is not { Length: > 0 } uid)
@@ -32,22 +32,27 @@ public sealed class AuthController(LocalStore store, PostgresRequestScopeFactory
         if (scope is null) return Unauthorized(new { error = "operator_not_authorized" });
         await using (scope)
         {
-            var terminalId = HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue<int?>("Api:TerminalId");
-            if (terminalId is null) return StatusCode(503, new { error = "terminal_not_configured" });
+            var configuredTerminalId = HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue<int?>("Api:TerminalId");
+            terminalCode = string.IsNullOrWhiteSpace(terminalCode) ? null : terminalCode.Trim();
+            if (terminalCode is null && configuredTerminalId is null) return StatusCode(503, new { error = "terminal_not_configured" });
             await using var profileCommand = new NpgsqlCommand("""
-                SELECT u.user_id, e.employee_id, e.store_id, e.name, r.name, r.permission_level
+                SELECT u.user_id,e.employee_id,e.store_id,e.name,r.name,r.permission_level,
+                       e.email,e.phone,e.hire_date,s.name,t.terminal_id
                 FROM mottainai.app_user u
                 JOIN mottainai.employee e ON e.employee_id=u.employee_id
                 JOIN mottainai.employee_role r ON r.role_id=e.role_id
-                JOIN mottainai.pos_terminal t ON t.terminal_id=$2 AND t.store_id=e.store_id AND t.active
+                JOIN mottainai.retail_store s ON s.store_id=e.store_id AND s.active AND s.deleted_at IS NULL
+                JOIN mottainai.pos_terminal t ON t.store_id=e.store_id AND t.active
+                  AND (($2::text IS NOT NULL AND t.terminal_code=$2) OR ($2::text IS NULL AND t.terminal_id=$3))
                 WHERE u.firebase_uid=$1 AND u.active AND e.active AND r.active
                   AND u.deleted_at IS NULL AND e.deleted_at IS NULL AND r.deleted_at IS NULL
                 """, scope.Connection, scope.Transaction);
-            profileCommand.Parameters.AddWithValue(uid); profileCommand.Parameters.AddWithValue(terminalId.Value);
+            profileCommand.Parameters.AddWithValue(uid); profileCommand.Parameters.AddWithValue((object?)terminalCode??DBNull.Value); profileCommand.Parameters.AddWithValue((object?)configuredTerminalId??DBNull.Value);
             await using var reader = await profileCommand.ExecuteReaderAsync(ct);
             if (!await reader.ReadAsync(ct)) return Unauthorized(new { error = "operator_not_authorized" });
             var userId = reader.GetInt32(0); var employeeId = reader.GetInt32(1); var storeId = reader.GetInt32(2);
-            var profileJson = JsonSerializer.Serialize(new { id = employeeId, name = reader.GetString(3), role = reader.GetString(4) });
+            var selectedTerminalId=reader.GetInt32(10);
+            var profileJson = JsonSerializer.Serialize(new { id=employeeId,name=reader.GetString(3),role=reader.GetString(4),email=reader.IsDBNull(6)?null:reader.GetString(6),phone=reader.IsDBNull(7)?null:reader.GetString(7),hireDate=reader.GetDateTime(8),storeId,storeName=reader.GetString(9),terminalId=selectedTerminalId });
             var permissionJson = JsonSerializer.Serialize(new { level = reader.GetInt32(5), role = reader.GetString(4) });
             await reader.DisposeAsync();
 
@@ -62,10 +67,42 @@ public sealed class AuthController(LocalStore store, PostgresRequestScopeFactory
                 await addSession.ExecuteNonQueryAsync(ct);
             }
             await scope.CommitAsync(ct);
-            await StoreOfflineOperatorAsync(uid, employeeId, storeId, terminalId.Value, profileJson, permissionJson, grant, grantExpires, sessionId.ToString("D"), ct);
+            await StoreOfflineOperatorAsync(uid, employeeId, storeId, selectedTerminalId, profileJson, permissionJson, grant, grantExpires, sessionId.ToString("D"), ct);
             var localSession = await CreateLocalSessionWithRefreshAsync(uid, refreshToken, ct);
             return Ok(new { localSession.accessToken, localSession.refreshToken, tokenType = "Bearer", expiresAt = localSession.expiresAt, offlineGrant = grant, offlineGrantExpiresAt = grantExpires, operatorProfile = JsonSerializer.Deserialize<JsonElement>(profileJson), permissions = JsonSerializer.Deserialize<JsonElement>(permissionJson) });
         }
+    }
+
+    [HttpGet("available-access"), Authorize(AuthenticationSchemes = "Firebase")]
+    public async Task<IActionResult> AvailableAccess(CancellationToken ct)
+    {
+        var uid=User.FindFirstValue("sub")??User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if(string.IsNullOrWhiteSpace(uid))return Unauthorized(new{error="firebase_user_required"});
+        if(!postgres.IsConfigured)return StatusCode(StatusCodes.Status503ServiceUnavailable,new{error="operational_database_unavailable"});
+        try
+        {
+            await using var scope=await postgres.OpenStaffScopeAsync(uid,ct);
+            if(scope is null)return Unauthorized(new{error="operator_not_authorized"});
+            await using var storeCommand=new NpgsqlCommand("""
+                SELECT e.employee_id,e.store_id,s.name
+                FROM mottainai.app_user u JOIN mottainai.employee e ON e.employee_id=u.employee_id
+                JOIN mottainai.retail_store s ON s.store_id=e.store_id
+                WHERE u.firebase_uid=$1 AND u.active AND e.active AND s.active
+                  AND u.deleted_at IS NULL AND e.deleted_at IS NULL AND s.deleted_at IS NULL
+                """,scope.Connection,scope.Transaction);
+            storeCommand.Parameters.AddWithValue(uid);
+            await using var reader=await storeCommand.ExecuteReaderAsync(ct);
+            if(!await reader.ReadAsync(ct))return Unauthorized(new{error="operator_not_authorized"});
+            var employeeId=reader.GetInt32(0);var storeId=reader.GetInt32(1);var storeName=reader.GetString(2);await reader.DisposeAsync();
+            await using var terminalCommand=new NpgsqlCommand("SELECT terminal_id,terminal_code,name FROM mottainai.pos_terminal WHERE store_id=$1 AND active ORDER BY terminal_id",scope.Connection,scope.Transaction);
+            terminalCommand.Parameters.AddWithValue(storeId);
+            await using var terminalReader=await terminalCommand.ExecuteReaderAsync(ct);
+            var terminals=new List<object>();while(await terminalReader.ReadAsync(ct))terminals.Add(new{terminalId=terminalReader.GetInt32(0),terminalCode=terminalReader.GetString(1),name=terminalReader.GetString(2)});
+            await terminalReader.DisposeAsync();await scope.CommitAsync(ct);
+            return Ok(new{employeeId,stores=new[]{new{storeId,name=storeName}},terminals});
+        }
+        catch(PostgresException){throw;}
+        catch(NpgsqlException){return StatusCode(StatusCodes.Status503ServiceUnavailable,new{error="operational_database_unavailable"});}
     }
 
     [HttpPost("offline-login"), AllowAnonymous]
@@ -73,8 +110,6 @@ public sealed class AuthController(LocalStore store, PostgresRequestScopeFactory
     {
         if (string.IsNullOrWhiteSpace(request.FirebaseUid) || string.IsNullOrWhiteSpace(request.OfflineGrant)) return BadRequest();
         await using var connection = await store.OpenConnectionAsync(ct);
-        var configuredTerminal = HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue<int?>("Api:TerminalId");
-        if (configuredTerminal is null || configuredTerminal.Value != request.TerminalId) return Unauthorized(new { error = "terminal_binding_mismatch" });
         await using var command = connection.CreateCommand();
         command.CommandText = "SELECT offline_grant_ciphertext, grant_expires_at, terminal_id FROM offline_operator WHERE firebase_uid=$uid AND revoked_at IS NULL";
         command.Parameters.AddWithValue("$uid", request.FirebaseUid);
@@ -122,10 +157,17 @@ public sealed class AuthController(LocalStore store, PostgresRequestScopeFactory
         employeeId = User.FindFirstValue("employee_id"),
         storeId = User.FindFirstValue("store_id"),
         terminalId = User.FindFirstValue("terminal_id"),
-        profile = User.FindFirstValue("profile"),
-        permissions = User.FindFirstValue("permissions"),
+        profile = ReadJsonClaim(User.FindFirstValue("profile")),
+        permissions = ReadJsonClaim(User.FindFirstValue("permissions")),
         offlineGrantExpiresAt = User.FindFirstValue("offline_grant_expires_at")
     });
+
+    private static JsonElement? ReadJsonClaim(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        try { return JsonDocument.Parse(value).RootElement.Clone(); }
+        catch (JsonException) { return null; }
+    }
 
     [HttpPost("/offline-sessions"), Authorize]
     public async Task<IActionResult> PrepareOfflineSession(OfflineSessionRequest request, CancellationToken ct)
@@ -139,19 +181,22 @@ public sealed class AuthController(LocalStore store, PostgresRequestScopeFactory
         await using (scope)
         {
             await using var command = new NpgsqlCommand("""
-                SELECT e.employee_id,e.store_id,e.name,r.name,r.permission_level,t.terminal_id
+                SELECT e.employee_id,e.store_id,e.name,r.name,r.permission_level,t.terminal_id,
+                       e.email,e.phone,e.hire_date,s.name
                 FROM mottainai.employee e
                 JOIN mottainai.app_user u ON u.employee_id=e.employee_id
                 JOIN mottainai.employee_role r ON r.role_id=e.role_id
+                JOIN mottainai.retail_store s ON s.store_id=e.store_id AND s.active AND s.deleted_at IS NULL
                 JOIN mottainai.pos_terminal t ON t.terminal_code=$1 AND t.store_id=e.store_id AND t.active
-                WHERE u.firebase_uid=$2 AND e.active AND r.active
+                WHERE u.firebase_uid=$2 AND u.active AND e.active AND r.active
+                  AND u.deleted_at IS NULL AND e.deleted_at IS NULL AND r.deleted_at IS NULL
                 """, scope.Connection, scope.Transaction);
             command.Parameters.AddWithValue(request.TerminalCode); command.Parameters.AddWithValue(uid);
             await using var reader = await command.ExecuteReaderAsync(ct);
             if (!await reader.ReadAsync(ct)) return NotFound(new { error = "terminal_or_operator_not_authorized" });
             var employeeId = reader.GetInt32(0); var storeId = reader.GetInt32(1); var actualTerminalId = reader.GetInt32(5);
             if (actualTerminalId != int.Parse(User.FindFirstValue("terminal_id")!)) return Forbid();
-            var profile = JsonSerializer.Serialize(new { id = employeeId, name = reader.GetString(2), role = reader.GetString(3) });
+            var profile = JsonSerializer.Serialize(new { id=employeeId,name=reader.GetString(2),role=reader.GetString(3),email=reader.IsDBNull(6)?null:reader.GetString(6),phone=reader.IsDBNull(7)?null:reader.GetString(7),hireDate=reader.GetDateTime(8),storeId,storeName=reader.GetString(9),terminalId=actualTerminalId });
             var permissions = JsonSerializer.Serialize(new { level = reader.GetInt32(4), role = reader.GetString(3) });
             await reader.DisposeAsync();
             var grant = Convert.ToBase64String(RandomNumberGenerator.GetBytes(40)); var expires = DateTimeOffset.UtcNow.AddHours(request.ValidHours);

@@ -9,13 +9,15 @@ security:
   - bearerAuth: []
 paths:
   /auth/login:
-    post: { security: [], summary: Entrar online como operador, responses: { '200': { description: Sessão iniciada }, '503': { description: Serviço online indisponível } } }
+    post: { security: [], summary: Entrar online como operador em um terminal autorizado, parameters: [{ in: query, name: terminalCode, required: false, description: Código retornado por GET /auth/available-access; Api:TerminalId é usado como compatibilidade se omitido, schema: { type: string } }], responses: { '200': { description: Sessão iniciada com perfil e permissões }, '401': { description: Operador ou terminal não autorizado }, '503': { description: Serviço online indisponível } } }
+  /auth/available-access:
+    get: { security: [{ firebaseBearerAuth: [] }], summary: Listar a loja e os terminais autorizados ao funcionário autenticado no Firebase, responses: { '200': { description: Uma loja e os terminais ativos dessa loja }, '401': { description: Operador não autorizado }, '503': { description: Banco operacional indisponível } } }
   /auth/refresh:
     post: { security: [], summary: Renovar sessão local, responses: { '200': { description: Sessão renovada }, '401': { description: Sessão inválida } } }
   /auth/logout:
     post: { summary: Sair da conta, responses: { '204': { description: Sessão revogada } } }
   /auth/me:
-    get: { summary: Consultar operador e permissões, responses: { '200': { description: Operador atual } } }
+    get: { summary: Consultar perfil completo do operador e permissões, responses: { '200': { description: Perfil funcional, loja, terminal e permissões da sessão } } }
   /auth/offline-login:
     post: { security: [], summary: Entrar com autorização offline prévia, responses: { '200': { description: Sessão local }, '401': { description: Grant inválido, expirado ou de outro terminal } } }
   /offline-sessions:
@@ -25,9 +27,11 @@ paths:
   /capabilities:
     get: { summary: Consultar recursos disponíveis, responses: { '200': { description: Capacidades do PDV } } }
   /products:
-    get: { summary: Buscar produtos, parameters: [{ in: query, name: query, schema: { type: string } }, { in: query, name: limit, schema: { type: integer } }, { in: query, name: customerId, description: ID retornado por POST /customers/search; exigido para elegibilidade promocional, schema: { type: integer } }], responses: { '200': { description: Online pode incluir promoção vigente para cliente verificado; offline ou sem cliente elegível retorna somente preço normal } } }
+    get: { summary: Buscar produtos paginados, parameters: [{ in: query, name: query, schema: { type: string } }, { in: query, name: limit, schema: { type: integer, maximum: 100 } }, { in: query, name: offset, schema: { type: integer, minimum: 0 } }, { in: query, name: customerId, description: ID retornado por POST /customers/search; exigido para elegibilidade promocional, schema: { type: integer } }], responses: { '200': { description: Online pode incluir promoção vigente para cliente verificado; offline ou sem cliente elegível retorna somente preço normal } } }
   /offline-catalog/sync:
     post: { summary: Atualizar o catálogo local completo para operação offline, description: Deve ser chamado enquanto conectado antes de iniciar o turno. Armazena todos os produtos ativos e preços regulares da loja; não salva promoções. A atualização substitui o catálogo anterior somente após leitura completa., responses: { '200': { description: Quantidade e horário do catálogo armazenado }, '503': { description: Banco operacional indisponível; catálogo anterior preservado } } }
+  /promotions:
+    get: { summary: Listar promoções aprovadas da loja, incluindo produtos, preços e validade, responses: { '200': { description: Promoções da loja autenticada; requer banco operacional online }, '503': { description: Banco operacional indisponível } } }
   /products/{productId}:
     get: { summary: Consultar produto, parameters: [{ in: path, name: productId, required: true, schema: { type: integer } }, { in: query, name: customerId, description: ID retornado por POST /customers/search; exigido para elegibilidade promocional, schema: { type: integer } }], responses: { '200': { description: Promoção vigente online para cliente verificado; apenas preço normal offline ou sem elegibilidade }, '404': { description: Não encontrado } } }
   /customers/search:
@@ -39,9 +43,9 @@ paths:
   /shifts/{shiftId}:
     get: { summary: Consultar turno, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Turno }, '404': { description: Não encontrado } } }
   /shifts/{shiftId}/summary:
-    get: { summary: Consultar saldo e resumo, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Resumo local } } }
+    get: { summary: Consultar resumo do turno sem revelar o valor esperado do caixa antes da contagem, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Resumo do turno sem o saldo esperado; o valor esperado só é retornado após o fechamento } } }
   /shifts/{shiftId}/closing:
-    post: { summary: Finalizar turno online, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Turno fechado }, '503': { description: Requer conexão; turno segue aberto } } }
+    post: { summary: Finalizar turno online e retornar o resultado da contagem cega com relatório, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Turno fechado com valor contado, valor esperado, diferença e relatório contendo duração, quantidade de vendas, total vendido e ticket médio }, '503': { description: Requer conexão; turno segue aberto } } }
   /shifts/{shiftId}/cash-movements:
     get: { summary: Listar movimentações, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Movimentações locais } } }
   /shifts/{shiftId}/cash-withdrawals:
