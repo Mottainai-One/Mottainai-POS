@@ -251,7 +251,33 @@ public sealed class OutboxSyncService(
                     requestId, reader.GetInt32(1), reader.GetInt32(2), reader.GetString(3), reader.GetInt32(4),
                     reader.IsDBNull(5) ? null : reader.GetInt32(5), reader.GetString(6),
                     reader.IsDBNull(7) ? null : reader.GetDecimal(7),
-                    reader.IsDBNull(8) ? null : reader.GetDecimal(8));
+                    reader.IsDBNull(8) ? null : reader.GetDecimal(8), []);
+            }
+
+            var recipients = new List<PosApprovalRecipient>();
+            await using (var managers = new NpgsqlCommand("""
+                SELECT DISTINCT s.company_id,u.user_id
+                FROM mottainai.employee e
+                JOIN mottainai.app_user u ON u.employee_id=e.employee_id
+                JOIN mottainai.employee_role role ON role.role_id=e.role_id
+                JOIN mottainai.retail_store s ON s.store_id=e.store_id
+                WHERE e.store_id=$1 AND e.active AND u.active AND role.active AND s.active
+                  AND e.deleted_at IS NULL AND u.deleted_at IS NULL
+                  AND role.deleted_at IS NULL AND s.deleted_at IS NULL
+                  AND UPPER(role.name) IN ('GERENTE','DONO','MANAGER','OWNER')
+                ORDER BY u.user_id
+                """, scope.Connection, scope.Transaction))
+            {
+                managers.Parameters.AddWithValue(notification.StoreId);
+                await using var managerReader = await managers.ExecuteReaderAsync(ct);
+                while (await managerReader.ReadAsync(ct))
+                    recipients.Add(new PosApprovalRecipient(managerReader.GetInt32(0), managerReader.GetInt32(1)));
+            }
+            notification = notification with { Recipients = recipients };
+            if (recipients.Count == 0)
+            {
+                logger.LogWarning("Manager approval notification deferred because the store has no active manager.");
+                return;
             }
 
             string? errorCode = null;

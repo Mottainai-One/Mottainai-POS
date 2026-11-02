@@ -12,7 +12,10 @@ public sealed record PosApprovalNotification(
     int? SaleItemId,
     string Reason,
     decimal? RequestedAmount,
-    decimal? DiscountPercent);
+    decimal? DiscountPercent,
+    IReadOnlyList<PosApprovalRecipient> Recipients);
+
+public sealed record PosApprovalRecipient(long CompanyId, long UserId);
 
 public sealed record PosApprovalDecision(
     Guid RequestId,
@@ -44,7 +47,12 @@ public sealed class PosApprovalCloudClient(HttpClient http, IConfiguration confi
             saleItemId = request.SaleItemId,
             reason = request.Reason,
             requestedAmount = request.RequestedAmount,
-            discountPercent = request.DiscountPercent
+            discountPercent = request.DiscountPercent,
+            recipients = request.Recipients.Select(recipient => new
+            {
+                companyId = recipient.CompanyId,
+                userId = recipient.UserId
+            })
         });
         using var response = await http.SendAsync(message, ct);
         response.EnsureSuccessStatusCode();
