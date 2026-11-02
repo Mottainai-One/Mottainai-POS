@@ -76,8 +76,21 @@ public sealed class SalesController(LocalStore store, OutboxRepository outbox, O
     public async Task<IActionResult> AddItem(int saleId, AddItemRequest request, CancellationToken ct)
     {
         if(!Guid.TryParse(request.IdempotencyKey,out var requestKey))return BadRequest(new{error="valid_idempotency_key_required"});
-        if (request.Quantity <= 0) return BadRequest(new { error = "quantity_must_be_positive" }); var price = await GetApplicablePriceAsync(request.ProductId,request.Quantity,ct); if (price is null || !price.Value.Product.Active) return NotFound(new { error = "product_not_in_offline_catalog" });
-        await using var db=await store.OpenConnectionAsync(ct); using var tx=db.BeginTransaction(); await using var sale=db.CreateCommand(); sale.Transaction=tx; sale.CommandText="SELECT 1 FROM local_sale WHERE local_sale_id=$id AND employee_id=$employee AND status='DRAFT'"; sale.Parameters.AddWithValue("$id",saleId); sale.Parameters.AddWithValue("$employee",Employee); if(await sale.ExecuteScalarAsync(ct) is null)return NotFound();
+        if (request.Quantity <= 0) return BadRequest(new { error = "quantity_must_be_positive" });
+        await using var db=await store.OpenConnectionAsync(ct);
+        int? customerId;
+        await using (var saleLookup=db.CreateCommand())
+        {
+            saleLookup.CommandText="SELECT customer_id FROM local_sale WHERE local_sale_id=$id AND employee_id=$employee AND status='DRAFT'";
+            saleLookup.Parameters.AddWithValue("$id",saleId);saleLookup.Parameters.AddWithValue("$employee",Employee);
+            var value=await saleLookup.ExecuteScalarAsync(ct);
+            if(value is null)return NotFound();
+            customerId=value is DBNull?null:Convert.ToInt32(value);
+        }
+        var price = await GetApplicablePriceAsync(customerId,request.ProductId,request.Quantity,ct);
+        if (price is null || !price.Value.Product.Active) return NotFound(new { error = "product_not_in_offline_catalog" });
+        using var tx=db.BeginTransaction();
+        await using var sale=db.CreateCommand(); sale.Transaction=tx; sale.CommandText="SELECT 1 FROM local_sale WHERE local_sale_id=$id AND employee_id=$employee AND status='DRAFT'"; sale.Parameters.AddWithValue("$id",saleId); sale.Parameters.AddWithValue("$employee",Employee); if(await sale.ExecuteScalarAsync(ct) is null)return NotFound();
         await using var seq=db.CreateCommand();seq.Transaction=tx;seq.CommandText="UPDATE local_sequence SET next_value=next_value-1 WHERE sequence_name='sale_item' RETURNING next_value+1";var itemId=Convert.ToInt32(await seq.ExecuteScalarAsync(ct));var now=DateTimeOffset.UtcNow;
         await using var insert=db.CreateCommand();insert.Transaction=tx;insert.CommandText="INSERT INTO local_sale_item(local_sale_item_id,sale_id,product_id,quantity,unit_price,sync_state,updated_at) VALUES($id,$sale,$product,$quantity,$price,'PENDING',$at)";insert.Parameters.AddWithValue("$id",itemId);insert.Parameters.AddWithValue("$sale",saleId);insert.Parameters.AddWithValue("$product",request.ProductId);insert.Parameters.AddWithValue("$quantity",request.Quantity.ToString(System.Globalization.CultureInfo.InvariantCulture));insert.Parameters.AddWithValue("$price",price.Value.AppliedPrice.ToString(System.Globalization.CultureInfo.InvariantCulture));insert.Parameters.AddWithValue("$at",now.ToString("O"));await insert.ExecuteNonQueryAsync(ct);await Enqueue(db,tx,itemId,"ADD_SALE_ITEM",new{saleId,itemId,employeeId=Employee,productId=request.ProductId,quantity=request.Quantity,unitPrice=price.Value.AppliedPrice},requestKey.ToString("D"),ct);tx.Commit();return Accepted(new{itemId,saleId,request.ProductId,request.Quantity,unitPrice=price.Value.AppliedPrice,normalPrice=price.Value.Product.NormalPrice,promotionId=price.Value.PromotionId,syncState="PENDING"});
     }
@@ -91,12 +104,13 @@ public sealed class SalesController(LocalStore store, OutboxRepository outbox, O
 
     private async Task Enqueue(Microsoft.Data.Sqlite.SqliteConnection db,Microsoft.Data.Sqlite.SqliteTransaction tx,int id,string type,object payload,string? key,CancellationToken ct){using var doc=JsonDocument.Parse(JsonSerializer.Serialize(payload));await outbox.EnqueueInTransactionAsync(db,tx,new OfflineOperation(Guid.NewGuid(),string.IsNullOrWhiteSpace(key)?Guid.NewGuid().ToString("D"):key,"sale",id,type,doc.RootElement.Clone(),Terminal),ct);}
 
-    private async Task<(CachedProduct Product,decimal AppliedPrice,int? PromotionId)?> GetApplicablePriceAsync(int productId,decimal quantity,CancellationToken ct)
+    private async Task<(CachedProduct Product,decimal AppliedPrice,int? PromotionId)?> GetApplicablePriceAsync(int? customerId,int productId,decimal quantity,CancellationToken ct)
     {
         if(postgres.IsConfigured)
         {
             try
             {
+                var eligibleForPromotions=customerId is > 0 && await cache.IsVerifiedCustomerAsync(customerId.Value,TimeSpan.FromMinutes(15),ct);
                 await using var scope=await postgres.OpenStaffScopeAsync(User.FindFirstValue(ClaimTypes.NameIdentifier)!,ct);
                 if(scope is not null)
                 {
@@ -104,9 +118,9 @@ public sealed class SalesController(LocalStore store, OutboxRepository outbox, O
                         SELECT p.product_id,p.sku,p.barcode,p.name,p.unit_measure,price.regular_price,p.active,p.version,promo.promotional_price,promo.promotion_id
                         FROM mottainai.product p
                         JOIN LATERAL(SELECT regular_price FROM mottainai.store_product_price WHERE product_id=p.product_id AND store_id=$1 AND active AND valid_from<=CURRENT_TIMESTAMP AND (valid_until IS NULL OR valid_until>CURRENT_TIMESTAMP) ORDER BY valid_from DESC LIMIT 1) price ON TRUE
-                        LEFT JOIN LATERAL(SELECT pi.promotional_price,pr.promotion_id FROM mottainai.promotion_item pi JOIN mottainai.promotion pr ON pr.promotion_id=pi.promotion_id WHERE pi.product_id=p.product_id AND pr.store_id=$1 AND pr.active AND pr.status='APPROVED' AND pr.deleted_at IS NULL AND pr.starts_at<=CURRENT_TIMESTAMP::timestamp AND pr.ends_at>CURRENT_TIMESTAMP::timestamp AND (pi.quantity_available IS NULL OR pi.quantity_available >= $3) ORDER BY pi.promotional_price LIMIT 1) promo ON TRUE
+                        LEFT JOIN LATERAL(SELECT pi.promotional_price,pr.promotion_id FROM mottainai.promotion_item pi JOIN mottainai.promotion pr ON pr.promotion_id=pi.promotion_id WHERE $4 AND pi.product_id=p.product_id AND pr.store_id=$1 AND pr.active AND pr.status='APPROVED' AND pr.deleted_at IS NULL AND pr.starts_at<=CURRENT_TIMESTAMP::timestamp AND pr.ends_at>CURRENT_TIMESTAMP::timestamp AND (pi.quantity_available IS NULL OR pi.quantity_available >= $3) ORDER BY pi.promotional_price LIMIT 1) promo ON TRUE
                         WHERE p.product_id=$2 AND p.active AND p.deleted_at IS NULL
-                        """,scope.Connection,scope.Transaction);command.Parameters.AddWithValue(StoreId);command.Parameters.AddWithValue(productId);command.Parameters.AddWithValue(quantity);await using var reader=await command.ExecuteReaderAsync(ct);
+                        """,scope.Connection,scope.Transaction);command.Parameters.AddWithValue(StoreId);command.Parameters.AddWithValue(productId);command.Parameters.AddWithValue(quantity);command.Parameters.AddWithValue(eligibleForPromotions);await using var reader=await command.ExecuteReaderAsync(ct);
                     if(await reader.ReadAsync(ct)){var now=DateTimeOffset.UtcNow;var product=new CachedProduct(reader.GetInt32(0),reader.GetString(1),reader.IsDBNull(2)?null:reader.GetString(2),reader.GetString(3),reader.GetString(4),reader.GetDecimal(5),reader.GetBoolean(6),reader.GetInt32(7),now);var promo=reader.IsDBNull(8)?(decimal?)null:reader.GetDecimal(8);var promotionId=reader.IsDBNull(9)?(int?)null:reader.GetInt32(9);await reader.DisposeAsync();await scope.CommitAsync(ct);await cache.ReplaceProductsAsync([product],ct);return(product,promo??product.NormalPrice,promotionId);}await reader.DisposeAsync();await scope.CommitAsync(ct);return null;
                 }
             }

@@ -123,6 +123,23 @@ CREATE TABLE IF NOT EXISTS local_sale_item (
     FOREIGN KEY(sale_id) REFERENCES local_sale(local_sale_id)
 );
 
+CREATE TABLE IF NOT EXISTS local_approval_request (
+    local_approval_request_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    request_id TEXT NOT NULL UNIQUE,
+    sale_id INTEGER NOT NULL,
+    sale_item_id INTEGER,
+    request_type TEXT NOT NULL CHECK(request_type IN (
+        'CANCEL_PURCHASE','CANCEL_PRODUCT','REFUND','RETURN','SPECIAL_DISCOUNT')),
+    reason_ciphertext BLOB NOT NULL,
+    requested_amount TEXT,
+    discount_percent TEXT,
+    status TEXT NOT NULL DEFAULT 'PENDING_SYNC'
+        CHECK(status IN ('PENDING_SYNC','PENDING','APPROVED','REJECTED','EXECUTED','CONFLICT')),
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(sale_id) REFERENCES local_sale(local_sale_id),
+    FOREIGN KEY(sale_item_id) REFERENCES local_sale_item(local_sale_item_id)
+);
+
 CREATE TABLE IF NOT EXISTS id_mapping (
     entity_type TEXT NOT NULL,
     local_id INTEGER NOT NULL,

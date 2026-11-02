@@ -28,6 +28,7 @@ builder.Services.AddSingleton<OfflineCacheRepository>();
 builder.Services.AddSingleton<PDVMottainai.Api.Data.PostgresRequestScopeFactory>();
 builder.Services.AddHostedService<LocalStoreInitializer>();
 builder.Services.AddHostedService<OutboxSyncService>();
+builder.Services.AddHttpClient<PosApprovalCloudClient>();
 builder.Services.AddDataProtection()
     .SetApplicationName("Mottainai.PDV.Api")
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(

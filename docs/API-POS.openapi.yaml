@@ -25,9 +25,9 @@ paths:
   /capabilities:
     get: { summary: Consultar recursos disponíveis, responses: { '200': { description: Capacidades do PDV } } }
   /products:
-    get: { summary: Buscar produtos, parameters: [{ in: query, name: query, schema: { type: string } }, { in: query, name: limit, schema: { type: integer } }], responses: { '200': { description: Online pode incluir promoção vigente; offline retorna somente preço normal } } }
+    get: { summary: Buscar produtos, parameters: [{ in: query, name: query, schema: { type: string } }, { in: query, name: limit, schema: { type: integer } }, { in: query, name: customerId, description: ID retornado por POST /customers/search; exigido para elegibilidade promocional, schema: { type: integer } }], responses: { '200': { description: Online pode incluir promoção vigente para cliente verificado; offline ou sem cliente elegível retorna somente preço normal } } }
   /products/{productId}:
-    get: { summary: Consultar produto, parameters: [{ in: path, name: productId, required: true, schema: { type: integer } }], responses: { '200': { description: Promoção vigente online; apenas preço normal offline }, '404': { description: Não encontrado } } }
+    get: { summary: Consultar produto, parameters: [{ in: path, name: productId, required: true, schema: { type: integer } }, { in: query, name: customerId, description: ID retornado por POST /customers/search; exigido para elegibilidade promocional, schema: { type: integer } }], responses: { '200': { description: Promoção vigente online para cliente verificado; apenas preço normal offline ou sem elegibilidade }, '404': { description: Não encontrado } } }
   /customers/search:
     post: { summary: Buscar cliente pela identidade tokenizada da conta, responses: { '200': { description: Cliente em cache }, '404': { description: Não encontrado no cache } } }
   /shifts:
@@ -52,9 +52,13 @@ paths:
   /sales/{saleId}:
     get: { summary: Consultar venda ou carrinho, parameters: [{ in: path, name: saleId, required: true, schema: { type: integer } }], responses: { '200': { description: Venda e itens }, '404': { description: Não encontrada } } }
   /sales/{saleId}/items:
-    post: { summary: Adicionar produto ao rascunho pelo preço normal, parameters: [{ in: path, name: saleId, required: true, schema: { type: integer } }], responses: { '202': { description: Item enfileirado }, '404': { description: Produto fora do cache } } }
+    post: { summary: Adicionar produto ao rascunho com preço normal ou promoção elegível, parameters: [{ in: path, name: saleId, required: true, schema: { type: integer } }], responses: { '202': { description: Item enfileirado }, '404': { description: Produto fora do cache } } }
   /sales/{saleId}/items/{itemId}:
     patch: { summary: Alterar quantidade do item, parameters: [{ in: path, name: saleId, required: true, schema: { type: integer } }, { in: path, name: itemId, required: true, schema: { type: integer } }], responses: { '202': { description: Alteração enfileirada }, '404': { description: Item não encontrado } } }
+  /approvals:
+    post: { summary: Enfileirar pedido de aprovação do gerente, description: Funciona offline. Tipos CANCEL_PURCHASE, CANCEL_PRODUCT, REFUND, RETURN e SPECIAL_DISCOUNT. Estorno/devolução são registros de aprovação sem execução financeira/estoque integrada., responses: { '202': { description: Pedido armazenado localmente para sincronização }, '400': { description: Dados do pedido inválidos }, '404': { description: Venda não encontrada } } }
+  /approvals/{requestId}:
+    get: { summary: Consultar o estado local de um pedido de aprovação, parameters: [{ in: path, name: requestId, required: true, schema: { type: string, format: uuid } }], responses: { '200': { description: Pedido e estado de sincronização/aprovação }, '404': { description: Pedido não encontrado } } }
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer }

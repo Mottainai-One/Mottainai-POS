@@ -15,7 +15,7 @@ public sealed record CachedProduct(
     int Version,
     DateTimeOffset CachedAt);
 
-public sealed record CachedCustomer(int CustomerId, string DisplayName);
+public sealed record CachedCustomer(int CustomerId, string DisplayName, DateTimeOffset VerifiedAt, bool IsMottainaiMember = true);
 
 public sealed class OfflineCacheRepository(LocalStore store)
 {
@@ -177,7 +177,7 @@ public sealed class OfflineCacheRepository(LocalStore store)
         await using var connection = await store.OpenConnectionAsync(cancellationToken);
         await using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT customer_id, display_ciphertext FROM customer_lookup_cache WHERE auth_token_hash = $auth_hash;
+            SELECT customer_id, display_ciphertext, cached_at FROM customer_lookup_cache WHERE auth_token_hash = $auth_hash;
             """;
         command.Parameters.AddWithValue("$auth_hash", authTokenHash);
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -185,7 +185,27 @@ public sealed class OfflineCacheRepository(LocalStore store)
         {
             return null;
         }
-        return new CachedCustomer(reader.GetInt32(0), store.Unprotect((byte[])reader[1]));
+        return new CachedCustomer(reader.GetInt32(0), store.Unprotect((byte[])reader[1]), DateTimeOffset.Parse(reader.GetString(2)));
+    }
+
+    public async Task<bool> IsVerifiedCustomerAsync(int customerId, TimeSpan maximumAge, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await store.OpenConnectionAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT 1 FROM customer_lookup_cache WHERE customer_id=$customer_id AND cached_at >= $verified_after LIMIT 1";
+        command.Parameters.AddWithValue("$customer_id", customerId);
+        command.Parameters.AddWithValue("$verified_after", (DateTimeOffset.UtcNow - maximumAge).ToString("O"));
+        return await command.ExecuteScalarAsync(cancellationToken) is not null;
+    }
+
+    public async Task<DateTimeOffset?> GetVerifiedAtAsync(int customerId, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await store.OpenConnectionAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT MAX(cached_at) FROM customer_lookup_cache WHERE customer_id=$customer_id";
+        command.Parameters.AddWithValue("$customer_id", customerId);
+        var value = await command.ExecuteScalarAsync(cancellationToken);
+        return value is string timestamp ? DateTimeOffset.Parse(timestamp) : null;
     }
 
     public async Task<DateTimeOffset?> GetLatestProductCacheTimeAsync(CancellationToken cancellationToken = default)
