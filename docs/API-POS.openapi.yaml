@@ -9,13 +9,15 @@ security:
   - bearerAuth: []
 paths:
   /auth/login:
-    post: { security: [], summary: Entrar online como operador, responses: { '200': { description: Sessão iniciada }, '503': { description: Serviço online indisponível } } }
+    post: { security: [], summary: Entrar online como operador em um terminal autorizado, parameters: [{ in: query, name: terminalCode, required: false, description: Código retornado por GET /auth/available-access; Api:TerminalId é usado como compatibilidade se omitido, schema: { type: string } }], responses: { '200': { description: Sessão iniciada com perfil e permissões }, '401': { description: Operador ou terminal não autorizado }, '503': { description: Serviço online indisponível } } }
+  /auth/available-access:
+    get: { security: [{ firebaseBearerAuth: [] }], summary: Listar a loja e os terminais autorizados ao funcionário autenticado no Firebase, responses: { '200': { description: Uma loja e os terminais ativos dessa loja }, '401': { description: Operador não autorizado }, '503': { description: Banco operacional indisponível } } }
   /auth/refresh:
     post: { security: [], summary: Renovar sessão local, responses: { '200': { description: Sessão renovada }, '401': { description: Sessão inválida } } }
   /auth/logout:
     post: { summary: Sair da conta, responses: { '204': { description: Sessão revogada } } }
   /auth/me:
-    get: { summary: Consultar operador e permissões, responses: { '200': { description: Operador atual } } }
+    get: { summary: Consultar perfil completo do operador e permissões, responses: { '200': { description: Perfil funcional, loja, terminal e permissões da sessão } } }
   /auth/offline-login:
     post: { security: [], summary: Entrar com autorização offline prévia, responses: { '200': { description: Sessão local }, '401': { description: Grant inválido, expirado ou de outro terminal } } }
   /offline-sessions:
@@ -25,11 +27,32 @@ paths:
   /capabilities:
     get: { summary: Consultar recursos disponíveis, responses: { '200': { description: Capacidades do PDV } } }
   /products:
-    get: { summary: Buscar produtos, parameters: [{ in: query, name: query, schema: { type: string } }, { in: query, name: limit, schema: { type: integer } }, { in: query, name: customerId, description: ID retornado por POST /customers/search; exigido para elegibilidade promocional, schema: { type: integer } }], responses: { '200': { description: Online pode incluir promoção vigente para cliente verificado; offline ou sem cliente elegível retorna somente preço normal } } }
+    get: { summary: Buscar produtos paginados, parameters: [{ in: query, name: query, schema: { type: string } }, { in: query, name: limit, schema: { type: integer, maximum: 100 } }, { in: query, name: offset, schema: { type: integer, minimum: 0 } }, { in: query, name: customerId, description: ID retornado por POST /customers/search; exigido para elegibilidade promocional, schema: { type: integer } }], responses: { '200': { description: Online pode incluir promoção vigente para cliente verificado; offline ou sem cliente elegível retorna somente preço normal } } }
+  /offline-catalog/sync:
+    post: { summary: Atualizar o catálogo local completo para operação offline, description: Deve ser chamado enquanto conectado antes de iniciar o turno. Armazena todos os produtos ativos e preços regulares da loja; não salva promoções. A atualização substitui o catálogo anterior somente após leitura completa., responses: { '200': { description: Quantidade e horário do catálogo armazenado }, '503': { description: Banco operacional indisponível; catálogo anterior preservado } } }
+  /promotions:
+    get: { summary: Listar promoções aprovadas da loja, incluindo produtos, preços e validade, responses: { '200': { description: Promoções da loja autenticada; requer banco operacional online }, '503': { description: Banco operacional indisponível } } }
   /products/{productId}:
     get: { summary: Consultar produto, parameters: [{ in: path, name: productId, required: true, schema: { type: integer } }, { in: query, name: customerId, description: ID retornado por POST /customers/search; exigido para elegibilidade promocional, schema: { type: integer } }], responses: { '200': { description: Promoção vigente online para cliente verificado; apenas preço normal offline ou sem elegibilidade }, '404': { description: Não encontrado } } }
   /customers/search:
-    post: { summary: Find a customer by CPF, description: The API hashes the validated CPF as a CPF_SHA256 token before PostgreSQL lookup; raw CPF is not sent to the database., requestBody: { required: true, content: { application/json: { schema: { type: object, required: [cpf], properties: { cpf: { type: string, description: CPF digits or formatted CPF; processed in memory by the API. } } } } } }, responses: { '200': { description: Customer ID cached for promotion eligibility }, '400': { description: Invalid CPF }, '404': { description: Customer not found } } }
+    post:
+      summary: Buscar cliente por token de conta ou CPF
+      description: Informe accountToken para o contrato legado ou cpf. CPF é validado e hasheado pela API antes da consulta ao banco; o valor original não é enviado ao banco.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                accountToken:
+                  type: string
+                  pattern: '^AUTH_SHA256_[0-9A-Fa-f]{64}
+  /customers/search-by-cpf:
+    post: { summary: Buscar cliente pelo CPF durante um turno aberto, description: Recebe CPF com ou sem máscara ou o token CPF_SHA256_<64 caracteres hexadecimais>. Para CPF informado em texto, a API normaliza e calcula o token determinístico antes de consultar o banco; o valor original não é persistido. A operação retorna o customerId para associar à venda., responses: { '200': { description: Cliente identificado; use customerId ao criar o rascunho da venda }, '400': { description: CPF ausente ou inválido }, '404': { description: Cliente não encontrado ou turno não autorizado } } }
+  /sales/{saleId}/customer:
+    get: { summary: Consultar os dados privados do cliente de uma venda em rascunho, description: Disponível somente online após a venda do próprio caixa ser sincronizada e associada ao cliente. A autorização de linha do banco exige turno aberto e venda DRAFT. A resposta inclui nome, CPF, email, telefone, data de nascimento e endereço quando presentes. Requer SECURITY__CUSTOMER__DATA__ENCRYPTIONKEY e SECURITY__CUSTOMER__DATA__KEYVERSION; chaves antigas podem ser fornecidas por SECURITY__CUSTOMER__DATA__DECRYPTIONKEYS., parameters: [{ in: path, name: saleId, required: true, schema: { type: integer } }], responses: { '200': { description: Perfil privado descriptografado }, '404': { description: Cliente não associado à venda ou perfil indisponível }, '409': { description: A venda precisa ser sincronizada antes da consulta }, '503': { description: Requer banco operacional e chave configurada } } }
   /shifts:
     post: { summary: Iniciar turno local ou online, responses: { '201': { description: Turno iniciado }, '409': { description: Já existe turno aberto } } }
   /shifts/current:
@@ -37,9 +60,9 @@ paths:
   /shifts/{shiftId}:
     get: { summary: Consultar turno, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Turno }, '404': { description: Não encontrado } } }
   /shifts/{shiftId}/summary:
-    get: { summary: Consultar saldo e resumo, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Resumo local } } }
+    get: { summary: Consultar resumo do turno sem revelar o valor esperado do caixa antes da contagem, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Resumo do turno sem o saldo esperado; o valor esperado só é retornado após o fechamento } } }
   /shifts/{shiftId}/closing:
-    post: { summary: Finalizar turno online, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Turno fechado }, '503': { description: Requer conexão; turno segue aberto } } }
+    post: { summary: Finalizar turno online e retornar o resultado da contagem cega com relatório, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Turno fechado com valor contado, valor esperado, diferença e relatório contendo duração, quantidade de vendas, total vendido e ticket médio }, '503': { description: Requer conexão; turno segue aberto } } }
   /shifts/{shiftId}/cash-movements:
     get: { summary: Listar movimentações, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Movimentações locais } } }
   /shifts/{shiftId}/cash-withdrawals:
@@ -55,12 +78,71 @@ paths:
     post: { summary: Adicionar produto ao rascunho com preço normal ou promoção elegível, parameters: [{ in: path, name: saleId, required: true, schema: { type: integer } }], responses: { '202': { description: A resposta inclui unitPrice (preço aplicado), normalPrice, promotionalPrice (null sem promoção) e promotionId (null sem promoção) }, '404': { description: Produto fora do cache } } }
   /sales/{saleId}/completion-simulation:
     post: { summary: Simular a conclusão do rascunho sem pagamento ou persistência real, parameters: [{ in: path, name: saleId, required: true, schema: { type: integer } }], responses: { '200': { description: Resultado simulado; não grava venda nem pagamento }, '404': { description: Venda não encontrada }, '409': { description: Rascunho inválido ou sem itens } } }
+  /sales/{saleId}/completion-simulation/payments:
+    post: { summary: Simular conclusão com uma ou mais formas de pagamento, description: Valores precisam somar o total exato da venda. Métodos aceitos: CASH, PIX, DEBIT_CARD e CREDIT_CARD. Nenhum pagamento é processado ou persistido., parameters: [{ in: path, name: saleId, required: true, schema: { type: integer } }], requestBody: { required: true, content: { application/json: { schema: { type: object, required: [payments], properties: { payments: { type: array, minItems: 1, maxItems: 10, items: { type: object, required: [paymentMethod, amount], properties: { paymentMethod: { type: string, enum: [CASH, PIX, DEBIT_CARD, CREDIT_CARD] }, amount: { type: number, exclusiveMinimum: 0 } } } } } } } } }, responses: { '200': { description: Simulação de pagamento concluída, sem cobrança ou persistência }, '400': { description: Formas inválidas ou soma diferente do total }, '409': { description: Venda não é rascunho ou não possui itens } } }
   /sales/{saleId}/items/{itemId}:
     patch: { summary: Alterar quantidade do item, parameters: [{ in: path, name: saleId, required: true, schema: { type: integer } }, { in: path, name: itemId, required: true, schema: { type: integer } }], responses: { '202': { description: Alteração enfileirada }, '404': { description: Item não encontrado } } }
   /approvals:
     post: { summary: Enfileirar pedido de aprovação do gerente, description: Funciona offline. Tipos CANCEL_PURCHASE, CANCEL_PRODUCT, REFUND, RETURN e SPECIAL_DISCOUNT. Estorno/devolução são registros de aprovação sem execução financeira/estoque integrada., responses: { '202': { description: Pedido armazenado localmente para sincronização }, '400': { description: Dados do pedido inválidos }, '404': { description: Venda não encontrada } } }
   /approvals/{requestId}:
     get: { summary: Consultar o estado local de um pedido de aprovação, parameters: [{ in: path, name: requestId, required: true, schema: { type: string, format: uuid } }], responses: { '200': { description: Pedido e estado de sincronização/aprovação }, '404': { description: Pedido não encontrado } } }
+  /approvals/{requestId}/manager-decision:
+    post: { security: [{ firebaseBearerAuth: [] }], summary: Record a manager decision using a Firebase ID token, description: The manager must be active and belong to the request store. This operation requires an internet connection. Refund and return approvals are recorded only; no payment is processed., parameters: [{ in: path, name: requestId, required: true, schema: { type: string, format: uuid } }], responses: { '200': { description: Decision recorded }, '401': { description: Valid Firebase ID token required }, '403': { description: Authenticated user is not an active manager for this store }, '404': { description: Approval request not found }, '409': { description: Request is not synchronized, is not pending, or its target sale item is no longer a draft }, '503': { description: Operational database unavailable } } }
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer }
+    firebaseBearerAuth: { type: http, scheme: bearer, description: Firebase ID token for manager approval }
+
+                cpf:
+                  type: string
+                  description: CPF válido com ou sem pontuação.
+              anyOf:
+                - required: [accountToken]
+                - required: [cpf]
+      responses:
+        '200': { description: Cliente identificado e armazenado em cache }
+        '400': { description: Token ou CPF inválido }
+        '404': { description: Cliente não encontrado }
+  /customers/search-by-cpf:
+    post: { summary: Buscar cliente pelo CPF durante um turno aberto, description: Recebe CPF com ou sem máscara ou o token CPF_SHA256_<64 caracteres hexadecimais>. Para CPF informado em texto, a API normaliza e calcula o token determinístico antes de consultar o banco; o valor original não é persistido. A operação retorna o customerId para associar à venda., responses: { '200': { description: Cliente identificado; use customerId ao criar o rascunho da venda }, '400': { description: CPF ausente ou inválido }, '404': { description: Cliente não encontrado ou turno não autorizado } } }
+  /sales/{saleId}/customer:
+    get: { summary: Consultar os dados privados do cliente de uma venda em rascunho, description: Disponível somente online após a venda do próprio caixa ser sincronizada e associada ao cliente. A autorização de linha do banco exige turno aberto e venda DRAFT. A resposta inclui nome, CPF, email, telefone, data de nascimento e endereço quando presentes. Requer SECURITY__CUSTOMER__DATA__ENCRYPTIONKEY e SECURITY__CUSTOMER__DATA__KEYVERSION; chaves antigas podem ser fornecidas por SECURITY__CUSTOMER__DATA__DECRYPTIONKEYS., parameters: [{ in: path, name: saleId, required: true, schema: { type: integer } }], responses: { '200': { description: Perfil privado descriptografado }, '404': { description: Cliente não associado à venda ou perfil indisponível }, '409': { description: A venda precisa ser sincronizada antes da consulta }, '503': { description: Requer banco operacional e chave configurada } } }
+  /shifts:
+    post: { summary: Iniciar turno local ou online, responses: { '201': { description: Turno iniciado }, '409': { description: Já existe turno aberto } } }
+  /shifts/current:
+    get: { summary: Consultar turno aberto, responses: { '200': { description: Turno atual }, '204': { description: Sem turno aberto } } }
+  /shifts/{shiftId}:
+    get: { summary: Consultar turno, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Turno }, '404': { description: Não encontrado } } }
+  /shifts/{shiftId}/summary:
+    get: { summary: Consultar resumo do turno sem revelar o valor esperado do caixa antes da contagem, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Resumo do turno sem o saldo esperado; o valor esperado só é retornado após o fechamento } } }
+  /shifts/{shiftId}/closing:
+    post: { summary: Finalizar turno online e retornar o resultado da contagem cega com relatório, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Turno fechado com valor contado, valor esperado, diferença e relatório contendo duração, quantidade de vendas, total vendido e ticket médio }, '503': { description: Requer conexão; turno segue aberto } } }
+  /shifts/{shiftId}/cash-movements:
+    get: { summary: Listar movimentações, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '200': { description: Movimentações locais } } }
+  /shifts/{shiftId}/cash-withdrawals:
+    post: { summary: Registrar sangria, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '202': { description: Movimento enfileirado; o aviso aos gerentes é enviado após a sincronização online } } }
+  /shifts/{shiftId}/cash-deposits:
+    post: { summary: Registrar suprimento, parameters: [{ in: path, name: shiftId, required: true, schema: { type: integer } }], responses: { '202': { description: Movimento enfileirado; o aviso aos gerentes é enviado após a sincronização online } } }
+  /sales:
+    get: { summary: Consultar vendas e rascunhos locais, responses: { '200': { description: Vendas em cache } } }
+    post: { summary: Iniciar venda em rascunho, responses: { '201': { description: Rascunho criado }, '409': { description: Turno aberto obrigatório } } }
+  /sales/{saleId}:
+    get: { summary: Consultar venda ou carrinho, parameters: [{ in: path, name: saleId, required: true, schema: { type: integer } }], responses: { '200': { description: Venda e itens }, '404': { description: Não encontrada } } }
+  /sales/{saleId}/items:
+    post: { summary: Adicionar produto ao rascunho com preço normal ou promoção elegível, parameters: [{ in: path, name: saleId, required: true, schema: { type: integer } }], responses: { '202': { description: A resposta inclui unitPrice (preço aplicado), normalPrice, promotionalPrice (null sem promoção) e promotionId (null sem promoção) }, '404': { description: Produto fora do cache } } }
+  /sales/{saleId}/completion-simulation:
+    post: { summary: Simular a conclusão do rascunho sem pagamento ou persistência real, parameters: [{ in: path, name: saleId, required: true, schema: { type: integer } }], responses: { '200': { description: Resultado simulado; não grava venda nem pagamento }, '404': { description: Venda não encontrada }, '409': { description: Rascunho inválido ou sem itens } } }
+  /sales/{saleId}/completion-simulation/payments:
+    post: { summary: Simular conclusão com uma ou mais formas de pagamento, description: Valores precisam somar o total exato da venda. Métodos aceitos: CASH, PIX, DEBIT_CARD e CREDIT_CARD. Nenhum pagamento é processado ou persistido., parameters: [{ in: path, name: saleId, required: true, schema: { type: integer } }], requestBody: { required: true, content: { application/json: { schema: { type: object, required: [payments], properties: { payments: { type: array, minItems: 1, maxItems: 10, items: { type: object, required: [paymentMethod, amount], properties: { paymentMethod: { type: string, enum: [CASH, PIX, DEBIT_CARD, CREDIT_CARD] }, amount: { type: number, exclusiveMinimum: 0 } } } } } } } } }, responses: { '200': { description: Simulação de pagamento concluída, sem cobrança ou persistência }, '400': { description: Formas inválidas ou soma diferente do total }, '409': { description: Venda não é rascunho ou não possui itens } } }
+  /sales/{saleId}/items/{itemId}:
+    patch: { summary: Alterar quantidade do item, parameters: [{ in: path, name: saleId, required: true, schema: { type: integer } }, { in: path, name: itemId, required: true, schema: { type: integer } }], responses: { '202': { description: Alteração enfileirada }, '404': { description: Item não encontrado } } }
+  /approvals:
+    post: { summary: Enfileirar pedido de aprovação do gerente, description: Funciona offline. Tipos CANCEL_PURCHASE, CANCEL_PRODUCT, REFUND, RETURN e SPECIAL_DISCOUNT. Estorno/devolução são registros de aprovação sem execução financeira/estoque integrada., responses: { '202': { description: Pedido armazenado localmente para sincronização }, '400': { description: Dados do pedido inválidos }, '404': { description: Venda não encontrada } } }
+  /approvals/{requestId}:
+    get: { summary: Consultar o estado local de um pedido de aprovação, parameters: [{ in: path, name: requestId, required: true, schema: { type: string, format: uuid } }], responses: { '200': { description: Pedido e estado de sincronização/aprovação }, '404': { description: Pedido não encontrado } } }
+  /approvals/{requestId}/manager-decision:
+    post: { security: [{ firebaseBearerAuth: [] }], summary: Record a manager decision using a Firebase ID token, description: The manager must be active and belong to the request store. This operation requires an internet connection. Refund and return approvals are recorded only; no payment is processed., parameters: [{ in: path, name: requestId, required: true, schema: { type: string, format: uuid } }], responses: { '200': { description: Decision recorded }, '401': { description: Valid Firebase ID token required }, '403': { description: Authenticated user is not an active manager for this store }, '404': { description: Approval request not found }, '409': { description: Request is not synchronized, is not pending, or its target sale item is no longer a draft }, '503': { description: Operational database unavailable } } }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer }
+    firebaseBearerAuth: { type: http, scheme: bearer, description: Firebase ID token for manager approval }

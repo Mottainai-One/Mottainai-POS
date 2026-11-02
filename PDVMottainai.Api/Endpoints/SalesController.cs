@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
@@ -9,11 +10,16 @@ using PDVMottainai.Api.Data.Local;
 namespace PDVMottainai.Api.Endpoints;
 
 [ApiController, Authorize, Route("sales")]
-public sealed class SalesController(LocalStore store, OutboxRepository outbox, OfflineCacheRepository cache, PostgresRequestScopeFactory postgres) : ControllerBase
+public sealed class SalesController(LocalStore store, OutboxRepository outbox, OfflineCacheRepository cache, PostgresRequestScopeFactory postgres, PDVMottainai.Api.Security.CustomerDataCryptography customerDataCryptography) : ControllerBase
 {
     public sealed record StartSaleRequest(int? CustomerId, string? Observation, string? IdempotencyKey);
     public sealed record AddItemRequest(int ProductId, decimal Quantity, string? IdempotencyKey);
     public sealed record ChangeItemRequest(decimal Quantity, string? IdempotencyKey);
+    public sealed record SimulatedPaymentPart(string PaymentMethod, decimal Amount);
+    public sealed record SplitPaymentSimulationRequest(IReadOnlyList<SimulatedPaymentPart>? Payments);
+    public sealed record CustomerAddressResponse(string? ZipCode, string? Street, string? Number, string? Complement, string? Neighborhood, string? City, string? State);
+    public sealed record CustomerPrivateProfileResponse(string? FullName, string? Cpf, string? Email, string? Phone, DateOnly? BirthDate, CustomerAddressResponse? Address);
+    private static readonly HashSet<string> SimulatedPaymentMethods = ["CASH", "PIX", "DEBIT_CARD", "CREDIT_CARD"];
     int Employee => int.Parse(User.FindFirstValue("employee_id")!);
     int StoreId => int.Parse(User.FindFirstValue("store_id")!);
     int Terminal => int.Parse(User.FindFirstValue("terminal_id")!);
@@ -59,6 +65,79 @@ public sealed class SalesController(LocalStore store, OutboxRepository outbox, O
         await using var items = db.CreateCommand(); items.CommandText = "SELECT local_sale_item_id,product_id,quantity,unit_price FROM local_sale_item WHERE sale_id=$id ORDER BY local_sale_item_id"; items.Parameters.AddWithValue("$id", saleId); await using var itemReader = await items.ExecuteReaderAsync(ct); var list = new List<object>(); decimal total=0; while(await itemReader.ReadAsync(ct)){var q=decimal.Parse(itemReader.GetString(2));var p=decimal.Parse(itemReader.GetString(3));total+=q*p;list.Add(new{itemId=itemReader.GetInt32(0),productId=itemReader.GetInt32(1),quantity=q,unitPrice=p,subtotal=q*p});} return Ok(new { sale, items=list, totalAmount=total });
     }
 
+    [HttpGet("{saleId:int}/customer")]
+    public async Task<IActionResult> GetSaleCustomer(int saleId, CancellationToken ct)
+    {
+        if (!postgres.IsConfigured)
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "customer_profile_requires_online_database" });
+
+        int remoteSaleId;
+        await using (var localDb = await store.OpenConnectionAsync(ct))
+        await using (var localSale = localDb.CreateCommand())
+        {
+            localSale.CommandText = "SELECT remote_sale_id,customer_id,sync_state FROM local_sale WHERE local_sale_id=$sale AND employee_id=$employee AND status='DRAFT'";
+            localSale.Parameters.AddWithValue("$sale", saleId);
+            localSale.Parameters.AddWithValue("$employee", Employee);
+            await using var reader = await localSale.ExecuteReaderAsync(ct);
+            if (!await reader.ReadAsync(ct)) return NotFound();
+            if (reader.IsDBNull(1)) return NotFound(new { error = "sale_has_no_customer" });
+            if (reader.IsDBNull(0) || reader.GetString(2) != "SYNCED")
+                return Conflict(new { error = "sale_must_be_synced_before_customer_profile_lookup" });
+            remoteSaleId = reader.GetInt32(0);
+        }
+
+        try
+        {
+            await using var scope = await postgres.OpenStaffScopeAsync(User.FindFirstValue(ClaimTypes.NameIdentifier)!, ct);
+            if (scope is null) return Unauthorized();
+
+            int customerId;
+            await using (var saleCommand = new NpgsqlCommand("""
+                SELECT customer_id
+                FROM mottainai.sales_transaction
+                WHERE sale_id=$1 AND employee_id=$2 AND store_id=$3
+                  AND status='DRAFT' AND customer_id IS NOT NULL AND deleted_at IS NULL
+                """, scope.Connection, scope.Transaction))
+            {
+                saleCommand.Parameters.AddWithValue(remoteSaleId);
+                saleCommand.Parameters.AddWithValue(Employee);
+                saleCommand.Parameters.AddWithValue(StoreId);
+                var value = await saleCommand.ExecuteScalarAsync(ct);
+                if (value is null or DBNull) return NotFound(new { error = "customer_not_attached_to_open_draft_sale" });
+                customerId = Convert.ToInt32(value);
+            }
+
+            byte[] ciphertext;
+            byte[] nonce;
+            short keyVersion;
+            await using (var privateData = new NpgsqlCommand("""
+                SELECT payload_ciphertext,payload_nonce,key_version
+                FROM mottainai.customer_private_data
+                WHERE customer_id=$1 AND deleted_at IS NULL
+                """, scope.Connection, scope.Transaction))
+            {
+                privateData.Parameters.AddWithValue(customerId);
+                await using var reader = await privateData.ExecuteReaderAsync(ct);
+                if (!await reader.ReadAsync(ct)) return NotFound(new { error = "customer_private_data_not_found" });
+                ciphertext = (byte[])reader[0];
+                nonce = (byte[])reader[1];
+                keyVersion = reader.GetInt16(2);
+            }
+
+            await scope.CommitAsync(ct);
+            var plaintext = customerDataCryptography.Decrypt(customerId, ciphertext, nonce, keyVersion);
+            var profile = JsonSerializer.Deserialize<CustomerPrivateProfileResponse>(plaintext, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            return profile is null
+                ? StatusCode(StatusCodes.Status502BadGateway, new { error = "customer_private_data_invalid" })
+                : Ok(profile);
+        }
+        catch (PostgresException) { throw; }
+        catch (NpgsqlException) { return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "operational_database_unavailable" }); }
+        catch (InvalidOperationException) { return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "customer_data_decryption_not_configured" }); }
+        catch (CryptographicException) { return StatusCode(StatusCodes.Status502BadGateway, new { error = "customer_private_data_could_not_be_decrypted" }); }
+        catch (JsonException) { return StatusCode(StatusCodes.Status502BadGateway, new { error = "customer_private_data_invalid" }); }
+    }
+
     private async Task<IActionResult> GetRemoteSaleAsync(int saleId,CancellationToken ct)
     {
         if(!postgres.IsConfigured)return NotFound();
@@ -91,6 +170,32 @@ public sealed class SalesController(LocalStore store, OutboxRepository outbox, O
         if (price is null || !price.Value.Product.Active) return NotFound(new { error = "product_not_in_offline_catalog" });
         using var tx=db.BeginTransaction();
         await using var sale=db.CreateCommand(); sale.Transaction=tx; sale.CommandText="SELECT 1 FROM local_sale WHERE local_sale_id=$id AND employee_id=$employee AND status='DRAFT'"; sale.Parameters.AddWithValue("$id",saleId); sale.Parameters.AddWithValue("$employee",Employee); if(await sale.ExecuteScalarAsync(ct) is null)return NotFound();
+        await using (var existing=db.CreateCommand())
+        {
+            existing.Transaction=tx;
+            existing.CommandText="SELECT local_sale_item_id,quantity FROM local_sale_item WHERE sale_id=$sale AND product_id=$product ORDER BY local_sale_item_id LIMIT 1";
+            existing.Parameters.AddWithValue("$sale",saleId); existing.Parameters.AddWithValue("$product",request.ProductId);
+            await using var reader=await existing.ExecuteReaderAsync(ct);
+            if(await reader.ReadAsync(ct))
+            {
+                var mergedItemId=reader.GetInt32(0);
+                var currentQuantity=decimal.Parse(reader.GetString(1),System.Globalization.CultureInfo.InvariantCulture);
+                await reader.DisposeAsync();
+                var quantity=currentQuantity+request.Quantity;
+                var combinedPrice=await GetApplicablePriceAsync(customerId,request.ProductId,quantity,ct);
+                if(combinedPrice is null || !combinedPrice.Value.Product.Active)return NotFound(new{error="product_not_in_offline_catalog"});
+                var mergedAt=DateTimeOffset.UtcNow;
+                await using var update=db.CreateCommand(); update.Transaction=tx;
+                update.CommandText="UPDATE local_sale_item SET quantity=$quantity,unit_price=$price,sync_state='PENDING',updated_at=$at WHERE local_sale_item_id=$item";
+                update.Parameters.AddWithValue("$quantity",quantity.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                update.Parameters.AddWithValue("$price",combinedPrice.Value.AppliedPrice.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                update.Parameters.AddWithValue("$at",mergedAt.ToString("O")); update.Parameters.AddWithValue("$item",mergedItemId);
+                await update.ExecuteNonQueryAsync(ct);
+                await Enqueue(db,tx,mergedItemId,"CHANGE_SALE_ITEM",new{saleId,itemId=mergedItemId,employeeId=Employee,quantity,unitPrice=combinedPrice.Value.AppliedPrice},requestKey.ToString("D"),ct);
+                tx.Commit();
+                return Accepted(new{itemId=mergedItemId,saleId,request.ProductId,quantity,unitPrice=combinedPrice.Value.AppliedPrice,normalPrice=combinedPrice.Value.Product.NormalPrice,promotionalPrice=combinedPrice.Value.PromotionId is null?(decimal?)null:combinedPrice.Value.AppliedPrice,promotionId=combinedPrice.Value.PromotionId,syncState="PENDING"});
+            }
+        }
         await using var seq=db.CreateCommand();seq.Transaction=tx;seq.CommandText="UPDATE local_sequence SET next_value=next_value-1 WHERE sequence_name='sale_item' RETURNING next_value+1";var itemId=Convert.ToInt32(await seq.ExecuteScalarAsync(ct));var now=DateTimeOffset.UtcNow;
         await using var insert=db.CreateCommand();insert.Transaction=tx;insert.CommandText="INSERT INTO local_sale_item(local_sale_item_id,sale_id,product_id,quantity,unit_price,sync_state,updated_at) VALUES($id,$sale,$product,$quantity,$price,'PENDING',$at)";insert.Parameters.AddWithValue("$id",itemId);insert.Parameters.AddWithValue("$sale",saleId);insert.Parameters.AddWithValue("$product",request.ProductId);insert.Parameters.AddWithValue("$quantity",request.Quantity.ToString(System.Globalization.CultureInfo.InvariantCulture));insert.Parameters.AddWithValue("$price",price.Value.AppliedPrice.ToString(System.Globalization.CultureInfo.InvariantCulture));insert.Parameters.AddWithValue("$at",now.ToString("O"));await insert.ExecuteNonQueryAsync(ct);await Enqueue(db,tx,itemId,"ADD_SALE_ITEM",new{saleId,itemId,employeeId=Employee,productId=request.ProductId,quantity=request.Quantity,unitPrice=price.Value.AppliedPrice},requestKey.ToString("D"),ct);tx.Commit();return Accepted(new{itemId,saleId,request.ProductId,request.Quantity,unitPrice=price.Value.AppliedPrice,normalPrice=price.Value.Product.NormalPrice,promotionalPrice=price.Value.PromotionId is null?(decimal?)null:price.Value.AppliedPrice,promotionId=price.Value.PromotionId,syncState="PENDING"});
     }
@@ -132,6 +237,57 @@ public sealed class SalesController(LocalStore store, OutboxRepository outbox, O
             realPaymentProcessed = false,
             itemCount,
             totalAmount,
+            completedAt = DateTimeOffset.UtcNow
+        });
+    }
+
+    [HttpPost("{saleId:int}/completion-simulation/payments")]
+    public async Task<IActionResult> SimulateCompletionWithPayments(int saleId, SplitPaymentSimulationRequest request, CancellationToken ct)
+    {
+        if (request.Payments is not { Count: > 0 and <= 10 })
+            return BadRequest(new { error = "one_to_ten_payment_parts_required" });
+        if (request.Payments.Any(payment => !SimulatedPaymentMethods.Contains(payment.PaymentMethod?.Trim().ToUpperInvariant() ?? string.Empty) || payment.Amount <= 0 || decimal.Round(payment.Amount, 2) != payment.Amount))
+            return BadRequest(new { error = "invalid_payment_part" });
+
+        await using var db = await store.OpenConnectionAsync(ct);
+        await using var saleCommand = db.CreateCommand();
+        saleCommand.CommandText = "SELECT status FROM local_sale WHERE local_sale_id=$id AND employee_id=$employee";
+        saleCommand.Parameters.AddWithValue("$id", saleId);
+        saleCommand.Parameters.AddWithValue("$employee", Employee);
+        var status = await saleCommand.ExecuteScalarAsync(ct);
+        if (status is null) return NotFound();
+        if (!string.Equals(Convert.ToString(status), "DRAFT", StringComparison.Ordinal))
+            return Conflict(new { error = "sale_must_be_draft" });
+
+        await using var itemsCommand = db.CreateCommand();
+        itemsCommand.CommandText = "SELECT quantity,unit_price FROM local_sale_item WHERE sale_id=$id AND CAST(quantity AS REAL)>0 ORDER BY local_sale_item_id";
+        itemsCommand.Parameters.AddWithValue("$id", saleId);
+        await using var reader = await itemsCommand.ExecuteReaderAsync(ct);
+        var itemCount = 0;
+        decimal totalAmount = 0;
+        while (await reader.ReadAsync(ct))
+        {
+            var quantity = decimal.Parse(reader.GetString(0), System.Globalization.CultureInfo.InvariantCulture);
+            var unitPrice = decimal.Parse(reader.GetString(1), System.Globalization.CultureInfo.InvariantCulture);
+            totalAmount += quantity * unitPrice;
+            itemCount++;
+        }
+        if (itemCount == 0) return Conflict(new { error = "sale_has_no_items" });
+
+        var paymentTotal = request.Payments.Sum(payment => payment.Amount);
+        if (paymentTotal != totalAmount)
+            return BadRequest(new { error = "payment_parts_must_match_sale_total", saleTotal = totalAmount, paymentTotal });
+
+        return Ok(new
+        {
+            saleId,
+            status = "SIMULATED",
+            simulation = true,
+            persisted = false,
+            realPaymentProcessed = false,
+            itemCount,
+            totalAmount,
+            payments = request.Payments.Select(payment => new { paymentMethod = payment.PaymentMethod.Trim().ToUpperInvariant(), payment.Amount }),
             completedAt = DateTimeOffset.UtcNow
         });
     }
