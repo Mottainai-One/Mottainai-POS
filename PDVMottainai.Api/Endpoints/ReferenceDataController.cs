@@ -213,5 +213,42 @@ public sealed class ReferenceDataController(OfflineCacheRepository cache, Postgr
         return customer is null ? NotFound() : Ok(customer);
     }
 
+    public sealed record CpfCustomerSearchRequest(string CpfToken);
+    [HttpPost("/customers/search-by-cpf")]
+    public async Task<IActionResult> CustomerSearchByCpf(CpfCustomerSearchRequest request, CancellationToken ct)
+    {
+        var cpfToken = request.CpfToken;
+        if (string.IsNullOrWhiteSpace(cpfToken) || !System.Text.RegularExpressions.Regex.IsMatch(cpfToken, "^CPF_SHA256_[0-9A-Fa-f]{64}$", System.Text.RegularExpressions.RegexOptions.CultureInvariant))
+            return BadRequest(new { error = "tokenized_cpf_required" });
+
+        var tokenHash = LocalStore.Sha256(cpfToken);
+        if (postgres.IsConfigured)
+        {
+            try
+            {
+                await using var scope = await postgres.OpenStaffScopeAsync(User.FindFirstValue(ClaimTypes.NameIdentifier)!, ct);
+                if (scope is not null)
+                {
+                    await using var command = new NpgsqlCommand("SELECT mottainai.fn_pos_find_customer_by_cpf_token($1)", scope.Connection, scope.Transaction);
+                    command.Parameters.AddWithValue(cpfToken);
+                    var customerId = await command.ExecuteScalarAsync(ct);
+                    await scope.CommitAsync(ct);
+                    if (customerId is not null)
+                    {
+                        var result = new CachedCustomer(Convert.ToInt32(customerId), $"Cliente Mottainai #{Convert.ToInt32(customerId)}", DateTimeOffset.UtcNow);
+                        await cache.CacheCustomerAsync(tokenHash, result.CustomerId, result.DisplayName, ct);
+                        return Ok(result);
+                    }
+                    return NotFound();
+                }
+            }
+            catch (PostgresException) { throw; }
+            catch (NpgsqlException) { }
+        }
+
+        var cachedCustomer = await cache.GetCustomerAsync(tokenHash, ct);
+        return cachedCustomer is null ? NotFound() : Ok(cachedCustomer);
+    }
+
     private static ProductResponse ToResponse(CachedProduct product,decimal? promotionalPrice,int? promotionId)=>new(product.ProductId,product.Sku,product.Barcode,product.Name,product.UnitMeasure,product.NormalPrice,promotionalPrice,promotionId,product.Active,product.Version,product.CachedAt);
 }

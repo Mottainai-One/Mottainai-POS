@@ -36,6 +36,8 @@ paths:
     get: { summary: Consultar produto, parameters: [{ in: path, name: productId, required: true, schema: { type: integer } }, { in: query, name: customerId, description: ID retornado por POST /customers/search; exigido para elegibilidade promocional, schema: { type: integer } }], responses: { '200': { description: Promoção vigente online para cliente verificado; apenas preço normal offline ou sem elegibilidade }, '404': { description: Não encontrado } } }
   /customers/search:
     post: { summary: Buscar cliente pela identidade tokenizada da conta, responses: { '200': { description: Cliente em cache }, '404': { description: Não encontrado no cache } } }
+  /customers/search-by-cpf:
+    post: { summary: Buscar cliente pelo token protegido do CPF durante um turno aberto, description: Recebe cpfToken no formato CPF_SHA256_<64 caracteres hexadecimais>. A API retorna apenas customerId e dados de verificação para associar o cliente à venda. Dados privados permanecem criptografados e não são retornados por essa operação., responses: { '200': { description: Cliente identificado; use customerId ao criar o rascunho da venda }, '400': { description: Token de CPF ausente ou inválido }, '404': { description: Cliente não encontrado ou turno não autorizado } } }
   /shifts:
     post: { summary: Iniciar turno local ou online, responses: { '201': { description: Turno iniciado }, '409': { description: Já existe turno aberto } } }
   /shifts/current:
