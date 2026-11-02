@@ -2,12 +2,19 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.Sqlite;
+using Npgsql;
+using PDVMottainai.Api.Data;
 using PDVMottainai.Api.Data.Local;
 
 namespace PDVMottainai.Api.Endpoints;
 
-[ApiController, Authorize, Route("approvals")]
-public sealed class ApprovalsController(LocalStore store, OutboxRepository outbox) : ControllerBase
+[ApiController, Route("approvals")]
+public sealed class ApprovalsController(
+    LocalStore store,
+    OutboxRepository outbox,
+    PostgresRequestScopeFactory postgres,
+    ILogger<ApprovalsController> logger) : ControllerBase
 {
     private static readonly HashSet<string> RequestTypes =
     ["CANCEL_PURCHASE", "CANCEL_PRODUCT", "REFUND", "RETURN", "SPECIAL_DISCOUNT"];
@@ -21,10 +28,13 @@ public sealed class ApprovalsController(LocalStore store, OutboxRepository outbo
         decimal? DiscountPercent,
         string? IdempotencyKey);
 
+    public sealed record ManagerDecisionRequest(bool? Approved, string? Observation);
+
     private int Employee => int.Parse(User.FindFirstValue("employee_id")!);
     private int StoreId => int.Parse(User.FindFirstValue("store_id")!);
     private int Terminal => int.Parse(User.FindFirstValue("terminal_id")!);
 
+    [Authorize]
     [HttpPost]
     public async Task<IActionResult> Create(CreateApprovalRequest request, CancellationToken ct)
     {
@@ -117,6 +127,7 @@ public sealed class ApprovalsController(LocalStore store, OutboxRepository outbo
         return Accepted(new { requestId, request.SaleId, request.SaleItemId, requestType = type, status = "PENDING_SYNC", createdAt });
     }
 
+    [Authorize]
     [HttpGet("{requestId:guid}")]
     public async Task<IActionResult> Get(Guid requestId, CancellationToken ct)
     {
@@ -146,5 +157,200 @@ public sealed class ApprovalsController(LocalStore store, OutboxRepository outbo
             status = reader.GetString(6),
             createdAt = DateTimeOffset.Parse(reader.GetString(7))
         });
+    }
+
+    [Authorize(AuthenticationSchemes = "Firebase")]
+    [HttpPost("{requestId:guid}/manager-decision")]
+    public async Task<IActionResult> DecideAsManager(
+        Guid requestId,
+        ManagerDecisionRequest request,
+        CancellationToken ct)
+    {
+        var managerUid = User.FindFirstValue("sub");
+        if (string.IsNullOrWhiteSpace(managerUid))
+            return Unauthorized(new { error = "firebase_user_required" });
+        if (request.Approved is null)
+            return BadRequest(new { error = "approved_decision_required" });
+        if (request.Observation?.Trim().Length > 250)
+            return BadRequest(new { error = "observation_max_250_characters" });
+        if (!postgres.IsConfigured)
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { error = "operational_database_unavailable" });
+
+        PostgresRequestScope? scope;
+        try
+        {
+            scope = await postgres.OpenStaffScopeAsync(managerUid, ct);
+        }
+        catch (NpgsqlException)
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { error = "operational_database_unavailable" });
+        }
+
+        if (scope is null)
+            return Forbid();
+
+        string requestType;
+        int storeId;
+        int saleId;
+        DateTime saleDate;
+        int? saleItemId;
+        int? cancellationRequestId;
+        decimal? discountPercent;
+        await using (scope)
+        {
+            await using (var approval = new NpgsqlCommand("""
+                SELECT store_id,request_type,sale_id,sale_date,sale_item_id,
+                       cancellation_request_id,discount_percent,status
+                FROM mottainai.pos_manager_approval_request
+                WHERE request_id=$1
+                FOR UPDATE
+                """, scope.Connection, scope.Transaction))
+            {
+                approval.Parameters.AddWithValue(requestId);
+                await using var reader = await approval.ExecuteReaderAsync(ct);
+                if (!await reader.ReadAsync(ct))
+                    return NotFound(new { error = "approval_request_not_found" });
+
+                storeId = reader.GetInt32(0);
+                requestType = reader.GetString(1);
+                saleId = reader.GetInt32(2);
+                saleDate = reader.GetDateTime(3);
+                saleItemId = reader.IsDBNull(4) ? null : reader.GetInt32(4);
+                cancellationRequestId = reader.IsDBNull(5) ? null : reader.GetInt32(5);
+                discountPercent = reader.IsDBNull(6) ? null : reader.GetDecimal(6);
+                if (reader.GetString(7) != "PENDING")
+                    return Conflict(new { error = "approval_request_already_decided" });
+            }
+
+            var managerEmployeeId = await FindActiveManagerEmployeeIdAsync(
+                scope, managerUid, storeId, ct);
+            if (managerEmployeeId is null)
+                return Forbid();
+
+            var observation = request.Observation?.Trim();
+            var approved = request.Approved.Value;
+            if (requestType is "CANCEL_PURCHASE" or "CANCEL_PRODUCT")
+            {
+                if (cancellationRequestId is null)
+                    return Conflict(new { error = "cancellation_request_not_ready" });
+
+                await using var cancellation = new NpgsqlCommand(
+                    "CALL mottainai.sp_decide_pos_cancellation($1,$2,$3,$4)",
+                    scope.Connection, scope.Transaction);
+                cancellation.Parameters.AddWithValue(cancellationRequestId.Value);
+                cancellation.Parameters.AddWithValue(managerEmployeeId.Value);
+                cancellation.Parameters.AddWithValue(approved);
+                cancellation.Parameters.AddWithValue((object?)observation ?? DBNull.Value);
+                await cancellation.ExecuteNonQueryAsync(ct);
+            }
+            else if (requestType == "SPECIAL_DISCOUNT" && approved)
+            {
+                if (saleItemId is null || discountPercent is null)
+                    return Conflict(new { error = "discount_request_not_ready" });
+
+                await using var discount = new NpgsqlCommand("""
+                    UPDATE mottainai.sale_item
+                    SET unit_price=ROUND(unit_price*(1-$1/100),2)
+                    WHERE sale_item_id=$2 AND sale_id=$3 AND sale_date=$4 AND status='DRAFT'
+                    """, scope.Connection, scope.Transaction);
+                discount.Parameters.AddWithValue(discountPercent.Value);
+                discount.Parameters.AddWithValue(saleItemId.Value);
+                discount.Parameters.AddWithValue(saleId);
+                discount.Parameters.AddWithValue(saleDate);
+                if (await discount.ExecuteNonQueryAsync(ct) == 0)
+                    return Conflict(new { error = "sale_item_is_not_a_draft" });
+
+                await RecalculateDraftTotalAsync(scope, saleId, saleDate, ct);
+            }
+
+            var status = requestType is "CANCEL_PURCHASE" or "CANCEL_PRODUCT"
+                ? approved ? "EXECUTED" : "REJECTED"
+                : approved ? "APPROVED" : "REJECTED";
+            var decidedAt = DateTimeOffset.UtcNow;
+            await using var update = new NpgsqlCommand("""
+                UPDATE mottainai.pos_manager_approval_request
+                SET status=$1,decided_by_employee_id=$2,decided_by_firebase_uid=$3,
+                    decision_observation=$4,decided_at=$5,updated_at=CURRENT_TIMESTAMP
+                WHERE request_id=$6 AND status='PENDING'
+                """, scope.Connection, scope.Transaction);
+            update.Parameters.AddWithValue(status);
+            update.Parameters.AddWithValue(managerEmployeeId.Value);
+            update.Parameters.AddWithValue(managerUid);
+            update.Parameters.AddWithValue((object?)observation ?? DBNull.Value);
+            update.Parameters.AddWithValue(decidedAt);
+            update.Parameters.AddWithValue(requestId);
+            if (await update.ExecuteNonQueryAsync(ct) != 1)
+                return Conflict(new { error = "approval_request_already_decided" });
+
+            await scope.CommitAsync(ct);
+
+            try
+            {
+                await using var local = await store.OpenConnectionAsync(ct);
+                await using var updateLocal = local.CreateCommand();
+                updateLocal.CommandText = "UPDATE local_approval_request SET status=$status WHERE request_id=$requestId";
+                updateLocal.Parameters.AddWithValue("$status", status);
+                updateLocal.Parameters.AddWithValue("$requestId", requestId.ToString("D"));
+                await updateLocal.ExecuteNonQueryAsync(ct);
+            }
+            catch (SqliteException ex)
+            {
+                logger.LogWarning("Manager decision was saved remotely but the local approval cache was not updated ({SqliteErrorCode}).", ex.SqliteErrorCode);
+            }
+
+            return Ok(new
+            {
+                requestId,
+                status,
+                approvedByEmployeeId = managerEmployeeId.Value,
+                decidedAt,
+                paymentProcessed = false
+            });
+        }
+    }
+
+    private static async Task<int?> FindActiveManagerEmployeeIdAsync(
+        PostgresRequestScope scope,
+        string firebaseUid,
+        int storeId,
+        CancellationToken ct)
+    {
+        await using var command = new NpgsqlCommand("""
+            SELECT e.employee_id
+            FROM mottainai.app_user u
+            JOIN mottainai.employee e ON e.employee_id=u.employee_id
+            JOIN mottainai.employee_role r ON r.role_id=e.role_id
+            WHERE u.firebase_uid=$1 AND e.store_id=$2
+              AND u.active AND e.active AND r.active
+              AND u.deleted_at IS NULL AND e.deleted_at IS NULL AND r.deleted_at IS NULL
+              AND UPPER(r.name) IN ('GERENTE','DONO','MANAGER','OWNER')
+            LIMIT 1
+            """, scope.Connection, scope.Transaction);
+        command.Parameters.AddWithValue(firebaseUid);
+        command.Parameters.AddWithValue(storeId);
+        var value = await command.ExecuteScalarAsync(ct);
+        return value is null or DBNull ? null : Convert.ToInt32(value);
+    }
+
+    private static async Task RecalculateDraftTotalAsync(
+        PostgresRequestScope scope,
+        int saleId,
+        DateTime saleDate,
+        CancellationToken ct)
+    {
+        await using var command = new NpgsqlCommand("""
+            UPDATE mottainai.sales_transaction s
+            SET total_amount=COALESCE((
+                    SELECT SUM(i.subtotal)
+                    FROM mottainai.sale_item i
+                    WHERE i.sale_id=s.sale_id AND i.sale_date=s.sale_date),0),
+                updated_at=CURRENT_TIMESTAMP
+            WHERE s.sale_id=$1 AND s.sale_date=$2 AND s.status='DRAFT'
+            """, scope.Connection, scope.Transaction);
+        command.Parameters.AddWithValue(saleId);
+        command.Parameters.AddWithValue(DateTime.SpecifyKind(saleDate, DateTimeKind.Unspecified));
+        await command.ExecuteNonQueryAsync(ct);
     }
 }
