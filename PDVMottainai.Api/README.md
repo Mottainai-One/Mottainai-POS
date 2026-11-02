@@ -14,6 +14,10 @@ Suprimentos e sangrias entram numa fila local protegida junto com o movimento. D
 
 `POST /sales/{saleId}/completion-simulation` retorna o total e a quantidade de itens como `SIMULATED`. A rota não registra pagamento, não altera o banco operacional e não transforma o rascunho em venda concluída.
 
+## Customer lookup
+
+`POST /customers/search` accepts a valid CPF from the authenticated POS. The API normalizes and hashes it as a `CPF_SHA256_` token before querying PostgreSQL; raw CPF is not sent to the database or written to logs. Apply `39_pos_api_customer_cpf_lookup.sql` from the operational database repository before using this route.
+
 ## Aprovações do gerente
 
 `POST /approvals` cria offline um pedido `CANCEL_PURCHASE`, `CANCEL_PRODUCT`, `REFUND`, `RETURN` ou `SPECIAL_DISCOUNT`; `GET /approvals/{requestId}` consulta o estado local. O outbox sincroniza os pedidos com `mottainai_operational`. Cancelamentos usam `pos_cancel_request` e a decisão do gerente executa o cancelamento no banco. Descontos especiais aprovados alteram o preço do item enquanto a venda ainda está em `DRAFT`. Estorno e devolução ficam registrados como aprovados/rejeitados; o sistema não contém integração de adquirente/pagamentos ou execução de devolução de estoque.
