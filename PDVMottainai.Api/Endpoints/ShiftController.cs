@@ -82,25 +82,12 @@ public sealed class ShiftController(LocalStore store, OutboxRepository outbox, P
     public async Task<IActionResult> Summary(int shiftId, CancellationToken ct)
     {
         await using var db = await store.OpenConnectionAsync(ct);
-        await using var shiftCommand = db.CreateCommand(); shiftCommand.CommandText = "SELECT opening_amount,sync_state,remote_shift_id FROM local_shift WHERE local_shift_id=$id AND employee_id=$employee"; shiftCommand.Parameters.AddWithValue("$id", shiftId); shiftCommand.Parameters.AddWithValue("$employee", Employee);
+        await using var shiftCommand = db.CreateCommand(); shiftCommand.CommandText = "SELECT sync_state FROM local_shift WHERE local_shift_id=$id AND employee_id=$employee"; shiftCommand.Parameters.AddWithValue("$id", shiftId); shiftCommand.Parameters.AddWithValue("$employee", Employee);
         await using var shiftReader = await shiftCommand.ExecuteReaderAsync(ct); if (!await shiftReader.ReadAsync(ct)) return NotFound();
-        var opening = decimal.Parse(shiftReader.GetString(0)); var syncState = shiftReader.GetString(1); var remoteShiftId=shiftReader.IsDBNull(2)?(int?)null:shiftReader.GetInt32(2); await shiftReader.DisposeAsync();
-        await using var cmd = db.CreateCommand();
-        cmd.CommandText = "SELECT movement_type,amount FROM local_cash_movement WHERE shift_id=$id"; cmd.Parameters.AddWithValue("$id", shiftId);
-        await using var reader = await cmd.ExecuteReaderAsync(ct); decimal deposits = 0, withdrawals = 0;
-        while (await reader.ReadAsync(ct)) { var amount = decimal.Parse(reader.GetString(1)); if (reader.GetString(0) == "SUPRIMENTO") deposits += amount; else withdrawals += amount; }
-        decimal cashPayments=0;var cashPaymentsComplete=false;
-        if(remoteShiftId is not null&&postgres.IsConfigured)
-        {
-            try
-            {
-                await using var scope=await postgres.OpenStaffScopeAsync(User.FindFirstValue(ClaimTypes.NameIdentifier)!,ct);
-                if(scope is not null){await using var payments=new NpgsqlCommand("SELECT COALESCE(SUM(p.amount),0) FROM mottainai.sale_payment p JOIN mottainai.sales_transaction s ON s.sale_id=p.sale_id AND s.sale_date=p.sale_date WHERE s.shift_id=$1 AND s.status='COMPLETED' AND p.payment_method='CASH'",scope.Connection,scope.Transaction);payments.Parameters.AddWithValue(remoteShiftId.Value);cashPayments=Convert.ToDecimal(await payments.ExecuteScalarAsync(ct));await scope.CommitAsync(ct);cashPaymentsComplete=true;}
-            }
-            catch(PostgresException){throw;}
-            catch(NpgsqlException){ }
-        }
-        return Ok(new { shiftId, openingAmount = opening, cashDeposits = deposits, cashWithdrawals = withdrawals,cashPayments,cashPaymentsComplete, syncState });
+        var syncState = shiftReader.GetString(0); await shiftReader.DisposeAsync();
+        await using var pendingCommand=db.CreateCommand();pendingCommand.CommandText="SELECT COUNT(*) FROM local_cash_movement WHERE shift_id=$id AND sync_state<>'SYNCED'";pendingCommand.Parameters.AddWithValue("$id",shiftId);
+        var pendingMovements=Convert.ToInt32(await pendingCommand.ExecuteScalarAsync(ct));
+        return Ok(new { shiftId, syncState, pendingCashMovements = pendingMovements, cashMovementsSynced = pendingMovements == 0 });
     }
 
     [HttpPost("{shiftId:int}/closing")]
