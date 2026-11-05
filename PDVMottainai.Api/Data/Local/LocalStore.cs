@@ -14,9 +14,18 @@ public sealed class LocalStore
     public LocalStore(IConfiguration configuration, IDataProtectionProvider protectionProvider)
     {
         var configuredPath = configuration["LocalStore:Path"];
+        var localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        if (string.IsNullOrWhiteSpace(localApplicationData))
+        {
+            localApplicationData = Path.GetTempPath();
+        }
+
+        var defaultPath = Path.Combine(localApplicationData, "Mottainai", "PDV", "pos-local.db");
         var path = string.IsNullOrWhiteSpace(configuredPath)
-            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Mottainai", "PDV", "pos-local.db")
-            : Environment.ExpandEnvironmentVariables(configuredPath);
+            ? defaultPath
+            : OperatingSystem.IsWindows()
+                ? Environment.ExpandEnvironmentVariables(configuredPath)
+                : configuredPath.Replace("%LOCALAPPDATA%", localApplicationData, StringComparison.OrdinalIgnoreCase);
 
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         _connectionString = new SqliteConnectionStringBuilder
