@@ -7,8 +7,10 @@ using PDVMottainai.Api.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var port = builder.Configuration.GetValue("Api:Port", 5097);
-builder.WebHost.ConfigureKestrel(options => options.ListenLocalhost(port));
+var port = int.TryParse(builder.Configuration["PORT"], out var renderPort)
+    ? renderPort
+    : builder.Configuration.GetValue("Api:Port", 5097);
+builder.WebHost.ConfigureKestrel(options => options.ListenAnyIP(port));
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -57,12 +59,23 @@ builder.Services.AddSingleton<PDVMottainai.Api.Security.CustomerDataCryptography
 builder.Services.AddHostedService<LocalStoreInitializer>();
 builder.Services.AddHostedService<OutboxSyncService>();
 builder.Services.AddHttpClient<PosApprovalCloudClient>();
-builder.Services.AddDataProtection()
-    .SetApplicationName("Mottainai.PDV.Api")
-    .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(
+
+var dataProtectionPath = builder.Configuration["DataProtection:Path"];
+if (string.IsNullOrWhiteSpace(dataProtectionPath))
+{
+    dataProtectionPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Mottainai", "PDV", "DataProtection")))
-    .ProtectKeysWithDpapi();
+        "Mottainai", "PDV", "DataProtection");
+}
+Directory.CreateDirectory(dataProtectionPath);
+
+var dataProtection = builder.Services.AddDataProtection()
+    .SetApplicationName("Mottainai.PDV.Api")
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath));
+if (OperatingSystem.IsWindows())
+{
+    dataProtection.ProtectKeysWithDpapi();
+}
 
 var app = builder.Build();
 
